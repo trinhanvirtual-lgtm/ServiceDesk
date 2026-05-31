@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Glassmorphism UI Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <style>
+      /* Using a more complex gradient for the background */
+      body {
+        background-color: #f0f2f5; /* Fallback */
+        background-image: var(--color-background-body);
+        transition: background-image 0.3s ease;
+        border-radius: 0 10px 10px 0;
+      }
+      /* Custom utility to hide scrollbars */
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
+      
+      /* Custom animations */
+      @keyframes fade-in-down {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in-down {
+        animation: fade-in-down 0.3s ease-out forwards;
+      }
+
+      @keyframes fade-out-up {
+        from {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+      }
+      .animate-fade-out-up {
+          animation: fade-out-up 0.3s ease-out forwards;
+      }
+
+      @keyframes fade-in-up {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+      }
+      .animate-fade-in-up {
+        animation: fade-in-up 0.3s ease-out forwards;
+      }
+      
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+      }
+      .animate-shake {
+        animation: shake 0.2s ease-in-out 0s 2;
+      }
+
+      /* ======================================================================
+         THEME & COLOR VARIABLES
+         ====================================================================== */
+      :root {
+        /* Light Theme Colors */
+        --color-text-primary: #1e293b;      /* slate-800 */
+        --color-text-secondary: #475569;    /* slate-600 */
+        --color-text-subtle: #64748b;       /* slate-500 */
+        --color-background-body: radial-gradient(
+          125% 125% at -2% 101%,
+          rgba(245, 87, 2, 1) 10.5%,
+          rgba(245, 120, 2, 1) 16%,
+          rgba(245, 140, 2, 1) 17.5%,
+          rgba(245, 170, 100, 1) 25%,
+          rgba(238, 174, 202, 1) 40%,
+          rgba(202, 179, 214, 1) 65%,
+          rgba(148, 201, 233, 1) 100%
+        );
+        --color-surface-primary: rgba(255, 255, 255, 0.4);
+        --color-surface-secondary: rgba(255, 255, 255, 0.6);
+        --color-surface-tertiary: rgba(255, 255, 255, 0.8);
+        --color-surface-solid: #ffffff;
+        --color-border-primary: rgba(255, 255, 255, 0.5);
+        --color-border-secondary: rgba(226, 232, 240, 0.8); /* slate-200/80 */
+
+        --color-destructive-fg: #dc2626; /* red-600 */
+        --color-destructive-bg: rgba(239, 68, 68, 0.1); /* red-500/10 */
+        --color-success-fg: #16a34a; /* green-600 */
+      }
+
+      .dark {
+        /* Dark Theme Colors */
+        --color-text-primary: #f1f5f9;      /* slate-100 */
+        --color-text-secondary: #94a3b8;    /* slate-400 */
+        --color-text-subtle: #64748b;       /* slate-500 */
+        --color-background-body: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.85)), radial-gradient(
+          125% 125% at -2% 101%,
+          rgba(245, 87, 2, 1) 10.5%,
+          rgba(245, 120, 2, 1) 16%,
+          rgba(245, 140, 2, 1) 17.5%,
+          rgba(245, 170, 100, 1) 25%,
+          rgba(238, 174, 202, 1) 40%,
+          rgba(202, 179, 214, 1) 65%,
+          rgba(148, 201, 233, 1) 100%
+        );
+        --color-surface-primary: rgba(30, 41, 59, 0.4);   /* slate-800/40 */
+        --color-surface-secondary: rgba(30, 41, 59, 0.6);
+        --color-surface-tertiary: rgba(30, 41, 59, 0.8);
+        --color-surface-solid: #1e293b; /* slate-800 */
+        --color-border-primary: rgba(51, 65, 85, 0.5);   /* slate-700/50 */
+        --color-border-secondary: rgba(51, 65, 85, 0.8);   /* slate-700/80 */
+
+        --color-destructive-fg: #f87171; /* red-400 */
+        --color-destructive-bg: rgba(248, 113, 113, 0.15); /* red-400/15 */
+        --color-success-fg: #4ade80; /* green-400 */
+      }
+
+      [data-accent-color="cyan"] {
+        --color-accent-100: #cffafe;
+        --color-accent-400: #22d3ee;
+        --color-accent-500: #06b6d4;
+        --color-accent-600: #0891b2;
+        --color-accent-700: #0e7490;
+        --color-accent-gradient-secondary: #3b82f6; /* blue-500 */
+        --color-accent-shadow: rgba(6, 182, 212, 0.25);
+      }
+      
+      [data-accent-color="rose"] {
+        --color-accent-100: #ffe4e6;
+        --color-accent-400: #fb7185;
+        --color-accent-500: #f43f5e;
+        --color-accent-600: #e11d48;
+        --color-accent-700: #be123c;
+        --color-accent-gradient-secondary: #d946ef; /* fuchsia-500 */
+        --color-accent-shadow: rgba(244, 63, 94, 0.25);
+      }
+
+      [data-accent-color="orange"] {
+        --color-accent-100: #ffedd5;
+        --color-accent-400: #fb923c;
+        --color-accent-500: #f97316;
+        --color-accent-600: #ea580c;
+        --color-accent-700: #c2410c;
+        --color-accent-gradient-secondary: #f59e0b; /* amber-500 */
+        --color-accent-shadow: rgba(249, 115, 22, 0.25);
+      }
+
+      [data-accent-color="green"] {
+        --color-accent-100: #dcfce7;
+        --color-accent-400: #4ade80;
+        --color-accent-500: #22c55e;
+        --color-accent-600: #16a34a;
+        --color-accent-700: #15803d;
+        --color-accent-gradient-secondary: #84cc16; /* lime-500 */
+        --color-accent-shadow: rgba(34, 197, 94, 0.25);
+      }
+
+      [data-accent-color="purple"] {
+        --color-accent-100: #f3e8ff;
+        --color-accent-400: #c084fc;
+        --color-accent-500: #a855f7;
+        --color-accent-600: #9333ea;
+        --color-accent-700: #7e22ce;
+        --color-accent-gradient-secondary: #8b5cf6; /* violet-500 */
+        --color-accent-shadow: rgba(168, 85, 247, 0.25);
+      }
+    </style>
+
+<script>
+  // Safety patch for "Cannot set property fetch of #<Window> which has only a getter" error in sandboxed iframes
+  (function() {
+    try {
+      var originalFetch = window.fetch;
+      var customFetch = originalFetch;
+      Object.defineProperty(window, 'fetch', {
+        get: function() {
+          return customFetch;
+        },
+        set: function(val) {
+          customFetch = val;
+        },
+        configurable: true,
+        enumerable: true
+      });
+    } catch (e) {
+      console.warn("Failed to patch window.fetch:", e);
+    }
+  })();
+
+  // IIFE to set theme before React mounts
+  (function() {
+    const theme = localStorage.getItem('theme') || 'system';
+    const accent = localStorage.getItem('accentColor') || 'cyan';
+    const doc = document.documentElement;
+
+    doc.setAttribute('data-accent-color', accent);
+    
+    if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      doc.classList.add('dark');
+    } else {
+      doc.classList.remove('dark');
+    }
+  })();
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

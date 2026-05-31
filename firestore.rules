@@ -1,0 +1,198 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isMember(channelId) {
+      return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/channels/$(channelId)).data.members;
+    }
+
+    // --- Validation Helpers ---
+    function isValidNotification(data) {
+      return data.keys().hasAll(['userId', 'title', 'message', 'read', 'createdAt', 'type']) &&
+             (data.keys().size() == 6 || (data.keys().size() == 7 && 'link' in data)) &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.message is string && data.message.size() <= 1000 &&
+             data.read is bool &&
+             data.createdAt is number &&
+             data.type is string && data.type in ['system', 'mention', 'task'] &&
+             (!('link' in data) || (data.link is string && data.link.size() <= 500));
+    }
+
+    function isValidProject(data) {
+      return data.keys().hasAll(['name', 'status']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.status is string && data.status in ['active', 'completed', 'on_hold'] &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
+             (!('dueDate' in data) || (data.dueDate is string && data.dueDate.size() <= 30)) &&
+             (!('parentProjectId' in data) || (data.parentProjectId == null || (data.parentProjectId is string && data.parentProjectId.size() <= 128))) &&
+             (!('taskListId' in data) || (data.taskListId == null || (data.taskListId is string && data.taskListId.size() <= 128))) &&
+             (!('taskListIds' in data) || (data.taskListIds is list && data.taskListIds.size() <= 20)) &&
+             (!('department' in data) || (data.department == null || (data.department is string && data.department in ['IT', 'Marketing', 'HR', ''])));
+    }
+
+    function isValidPage(data) {
+      return data.keys().hasAll(['title', 'slug', 'status', 'content']) &&
+             (data.keys().size() == 4 || (data.keys().size() == 5 && 'lastUpdated' in data)) &&
+             data.title is string && data.title.size() <= 200 &&
+             data.slug is string && data.slug.size() <= 200 &&
+             data.status is string && data.status in ['published', 'draft'] &&
+             data.content is string && data.content.size() <= 50000 &&
+             (!('lastUpdated' in data) || (data.lastUpdated is string && data.lastUpdated.size() <= 30));
+    }
+
+    function isValidSiteSettings(data) {
+      return data.keys().hasAll(['siteName', 'siteEmail']) &&
+             (data.keys().size() == 2 || (data.keys().size() == 3 && 'siteDesc' in data)) &&
+             data.siteName is string && data.siteName.size() <= 100 &&
+             data.siteEmail is string && data.siteEmail.size() <= 100 &&
+             (!('siteDesc' in data) || (data.siteDesc is string && data.siteDesc.size() <= 500));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'name']) &&
+             data.keys().size() >= 2 && data.keys().size() <= 6 &&
+             (!('avatar' in data) || (data.avatar is string && data.avatar.size() <= 1024)) &&
+             (!('createdAt' in data) || data.createdAt is number) &&
+             (!('role' in data) || (data.role is string && data.role in ['superadmin', 'admin', 'member'])) &&
+             (!('phoneNumber' in data) || (data.phoneNumber is string && data.phoneNumber.size() <= 30)) &&
+             data.email is string && data.email.size() <= 100 &&
+             data.name is string && data.name.size() <= 100;
+    }
+
+    function isValidTask(data) {
+      return data.keys().hasAll(['text', 'completed', 'ownerId']) &&
+             data.keys().size() >= 3 && data.keys().size() <= 5 &&
+             data.text is string && data.text.size() <= 1000 &&
+             data.completed is bool &&
+             data.ownerId is string && data.ownerId == request.auth.uid &&
+             (!('dueDate' in data) || (data.dueDate is string && data.dueDate.size() <= 30)) &&
+             (!('taskListId' in data) || (data.taskListId is string && data.taskListId.size() <= 128));
+    }
+
+    function isValidNote(data) {
+      return data.keys().hasAll(['title', 'ownerId']) &&
+             (data.keys().size() == 2 || (data.keys().size() == 3 && 'content' in data)) &&
+             data.title is string && data.title.size() <= 200 &&
+             data.ownerId is string && data.ownerId == request.auth.uid &&
+             (!('content' in data) || (data.content is string && data.content.size() <= 20000));
+    }
+
+    function isValidPost(data) {
+      return data.keys().hasAll(['content', 'authorId', 'type']) &&
+             data.keys().size() == 3 &&
+             data.content is string && data.content.size() <= 5000 &&
+             data.authorId is string && data.authorId == request.auth.uid &&
+             data.type is string && data.type.size() <= 50;
+    }
+
+    function isValidChannel(data) {
+      return data.keys().hasAll(['type', 'members']) &&
+             data.keys().size() >= 2 && data.keys().size() <= 4 &&
+             data.type is string && data.type in ['channel', 'dm'] &&
+             data.members is list && data.members.size() > 0 && data.members.size() <= 100 &&
+             data.members[0] is string &&
+             (!('name' in data) || (data.name is string && data.name.size() <= 100)) &&
+             (!('createdAt' in data) || data.createdAt is number);
+    }
+
+    function isValidChatMessage(data) {
+      return data.keys().hasAll(['channelId', 'content', 'authorId', 'authorName', 'createdAt']) &&
+             (data.keys().size() == 5 || (data.keys().size() == 6 && 'authorAvatar' in data)) &&
+             data.channelId is string && data.channelId.size() <= 128 &&
+             data.content is string && data.content.size() <= 2000 &&
+             data.authorId is string && data.authorId == request.auth.uid &&
+             data.authorName is string && data.authorName.size() <= 100 &&
+             data.createdAt is number &&
+             (!('authorAvatar' in data) || (data.authorAvatar is string && data.authorAvatar.size() <= 1024));
+    }
+
+    // --- Rules ---
+
+    match /notifications/{notificationId} {
+      allow read: if isSignedIn() && isValidId(notificationId) && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(notificationId) && isValidNotification(incoming()) && incoming().userId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(notificationId) && existing().userId == request.auth.uid && isValidNotification(incoming()) && incoming().userId == existing().userId && incoming().diff(existing()).affectedKeys().hasOnly(['read']);
+      allow delete: if isSignedIn() && isValidId(notificationId) && resource.data.userId == request.auth.uid;
+    }
+
+    match /projects/{projectId} {
+      allow read: if isSignedIn() && isValidId(projectId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(projectId) && isValidProject(incoming());
+      allow update: if isSignedIn() && isValidId(projectId) && isValidProject(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'status', 'description', 'dueDate', 'parentProjectId', 'taskListId', 'taskListIds', 'department']);
+      allow delete: if isSignedIn() && isValidId(projectId);
+    }
+
+    match /pages/{pageId} {
+      allow read: if isSignedIn() && isValidId(pageId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(pageId) && isValidPage(incoming());
+      allow update: if isSignedIn() && isValidId(pageId) && isValidPage(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'slug', 'status', 'content', 'lastUpdated']);
+      allow delete: if isSignedIn() && isValidId(pageId);
+    }
+
+    match /settings/{settingId} {
+      allow read: if isSignedIn() && isValidId(settingId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(settingId) && isValidSiteSettings(incoming());
+      allow update: if isSignedIn() && isValidId(settingId) && isValidSiteSettings(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['siteName', 'siteEmail', 'siteDesc']);
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && isValidId(userId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(userId) && userId == request.auth.uid && isValidUser(incoming());
+      allow update: if isSignedIn() && isValidId(userId) && userId == request.auth.uid && isValidUser(incoming()) && incoming().email == existing().email && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'avatar', 'role', 'phoneNumber']);
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isSignedIn() && isValidId(taskId) && resource.data.ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(taskId) && isValidTask(incoming());
+      allow update: if isSignedIn() && isValidId(taskId) && existing().ownerId == request.auth.uid && isValidTask(incoming()) && incoming().ownerId == existing().ownerId && incoming().diff(existing()).affectedKeys().hasOnly(['text', 'completed', 'dueDate', 'taskListId']);
+      allow delete: if isSignedIn() && isValidId(taskId) && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /notes/{noteId} {
+      allow read: if isSignedIn() && isValidId(noteId) && resource.data.ownerId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(noteId) && isValidNote(incoming());
+      allow update: if isSignedIn() && isValidId(noteId) && existing().ownerId == request.auth.uid && isValidNote(incoming()) && incoming().ownerId == existing().ownerId && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content']);
+      allow delete: if isSignedIn() && isValidId(noteId) && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /posts/{postId} {
+      allow read: if isSignedIn() && isValidId(postId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(postId) && isValidPost(incoming());
+      allow update: if isSignedIn() && isValidId(postId) && existing().authorId == request.auth.uid && isValidPost(incoming()) && incoming().authorId == existing().authorId && incoming().diff(existing()).affectedKeys().hasOnly(['content', 'type']);
+      allow delete: if isSignedIn() && isValidId(postId) && resource.data.authorId == request.auth.uid;
+    }
+
+    match /channels/{channelId} {
+      allow read: if isSignedIn() && isValidId(channelId) && request.auth.uid in resource.data.members;
+      allow list: if isSignedIn() && request.auth.uid in resource.data.members;
+      allow create: if isSignedIn() && isValidId(channelId) && isValidChannel(incoming()) && request.auth.uid in incoming().members;
+      allow update: if isSignedIn() && isValidId(channelId) && request.auth.uid in existing().members && isValidChannel(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'members', 'type']);
+      
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && isValidId(messageId) && isMember(channelId);
+        allow list: if isSignedIn() && isMember(channelId);
+        allow create: if isSignedIn() && isValidId(messageId) && isMember(channelId) && isValidChatMessage(incoming()) && incoming().channelId == channelId;
+        allow update: if isSignedIn() && isValidId(messageId) && existing().authorId == request.auth.uid && isValidChatMessage(incoming()) && incoming().authorId == existing().authorId && incoming().channelId == existing().channelId && incoming().diff(existing()).affectedKeys().hasOnly(['content', 'authorAvatar', 'authorName']);
+        allow delete: if isSignedIn() && isValidId(messageId) && resource.data.authorId == request.auth.uid;
+      }
+    }
+  }
+}

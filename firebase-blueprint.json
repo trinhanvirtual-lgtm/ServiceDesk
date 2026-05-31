@@ -1,0 +1,174 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the application",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "avatar": { "type": "string" },
+        "createdAt": { "type": "number", "description": "Timestamp" }
+      },
+      "required": ["email", "name"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A task in a task list",
+      "type": "object",
+      "properties": {
+        "text": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "dueDate": { "type": "string" },
+        "ownerId": { "type": "string", "description": "Owner user UID" },
+        "taskListId": { "type": "string" }
+      },
+      "required": ["text", "completed", "ownerId"]
+    },
+    "Note": {
+      "title": "Note",
+      "description": "A note",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "ownerId": { "type": "string" }
+      },
+      "required": ["title", "ownerId"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "A newsfeed post",
+      "type": "object",
+      "properties": {
+        "content": { "type": "string" },
+        "authorId": { "type": "string" },
+        "type": { "type": "string" }
+      },
+      "required": ["content", "authorId", "type"]
+    },
+    "Channel": {
+      "title": "Channel",
+      "description": "A chat channel or direct message",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["channel", "dm"] },
+        "members": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["type", "members"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "A message in a chat channel",
+      "type": "object",
+      "properties": {
+        "channelId": { "type": "string" },
+        "content": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorAvatar": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["channelId", "content", "authorId", "authorName", "createdAt"]
+    },
+    "Page": {
+      "title": "Page",
+      "description": "Website CMS pages state",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "slug": { "type": "string" },
+        "status": { "type": "string", "enum": ["published", "draft"] },
+        "content": { "type": "string" },
+        "lastUpdated": { "type": "string" }
+      },
+      "required": ["title", "slug", "status", "content"]
+    },
+    "SiteSettings": {
+      "title": "SiteSettings",
+      "description": "Website Settings state",
+      "type": "object",
+      "properties": {
+        "siteName": { "type": "string" },
+        "siteDesc": { "type": "string" },
+        "siteEmail": { "type": "string" }
+      },
+      "required": ["siteName", "siteEmail"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Project management state",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "completed", "on_hold"] },
+        "dueDate": { "type": "string" },
+        "parentProjectId": { "type": "string", "description": "ID of parent project" },
+        "taskListId": { "type": "string", "description": "ID of primary task list" },
+        "taskListIds": { "type": "array", "items": { "type": "string" }, "description": "IDs of associated task lists" },
+        "department": { "type": "string", "enum": ["IT", "Marketing", "HR", ""] }
+      },
+      "required": ["name", "status"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "A real-time notification for a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" },
+        "createdAt": { "type": "number" },
+        "type": { "type": "string", "enum": ["system", "mention", "task"] },
+        "link": { "type": "string" }
+      },
+      "required": ["userId", "title", "message", "read", "createdAt", "type"]
+    }
+  },
+  "firestore": {
+    "/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/Notification" },
+      "description": "User notifications"
+    },
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "CMS Projects"
+    },
+    "/pages/{pageId}": {
+      "schema": { "$ref": "#/entities/Page" },
+      "description": "CMS Pages"
+    },
+    "/settings/{settingId}": {
+      "schema": { "$ref": "#/entities/SiteSettings" },
+      "description": "Site Settings. There should just be one document usually 'global'."
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profiles. Users can only modify their own data."
+    },
+    "/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/Task" },
+      "description": "User tasks. Restricted to the owner."
+    },
+    "/notes/{noteId}": {
+      "schema": { "$ref": "#/entities/Note" },
+      "description": "User notes. Restricted to the owner."
+    },
+    "/posts/{postId}": {
+      "schema": { "$ref": "#/entities/Post" },
+      "description": "Global newsfeed posts."
+    },
+    "/channels/{channelId}": {
+      "schema": { "$ref": "#/entities/Channel" },
+      "description": "Chat channels. Accessible to members."
+    },
+    "/channels/{channelId}/messages/{messageId}": {
+      "schema": { "$ref": "#/entities/ChatMessage" },
+      "description": "Messages within a channel."
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "Remix: ServiceDeskManager",
+  "description": "Phần mềm làm việc giành cho nhân viên Power Service One ",
+  "requestFramePermissions": [
+    "geolocation",
+    "microphone",
+    "publickey-credentials-get"
+  ],
+  "prompt": "",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
