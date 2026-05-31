@@ -1,5 +1,5 @@
 import React from 'react';
-import { MailIcon, PencilIcon, TrashIcon } from './icons';
+import { MailIcon, PencilIcon, TrashIcon, ChatIcon } from './icons';
 
 export interface Contact {
   id: string;
@@ -16,9 +16,10 @@ export interface Contact {
 
 interface ContactCardProps {
   contact: Contact;
+  onChatClick?: (e: React.MouseEvent, contact: Contact) => void;
 }
 
-const ContactCard: React.FC<ContactCardProps> = ({ contact }) => {
+const ContactCard: React.FC<ContactCardProps> = ({ contact, onChatClick }) => {
   const getInitials = (name: string) => {
     const names = name.split(' ');
     if (names.length > 1) {
@@ -55,6 +56,13 @@ const ContactCard: React.FC<ContactCardProps> = ({ contact }) => {
         </div>
       </div>
       <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button 
+            onClick={(e) => { e.stopPropagation(); if(onChatClick) onChatClick(e, contact); }}
+            className="p-2 rounded-full bg-white/50 hover:bg-white text-cyan-600 transition-colors shadow-sm"
+            title="Trò chuyện"
+        >
+            <ChatIcon className="w-4 h-4" />
+        </button>
         <button className="p-2 rounded-full bg-white/50 hover:bg-white text-slate-600 transition-colors shadow-sm"><PencilIcon className="w-4 h-4" /></button>
         <button className="p-2 rounded-full bg-white/50 hover:bg-white text-red-500 transition-colors shadow-sm"><TrashIcon className="w-4 h-4" /></button>
       </div>

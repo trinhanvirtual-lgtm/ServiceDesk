@@ -69,6 +69,12 @@ export const mockTaskLists: TaskList[] = [
   },
 ];
 
+export const mockTaskTemplates = [
+    { id: 'tpl-1', text: 'Daily Standup Prep', notes: 'Prepare list of blockers and accomplishments.', priority: 'Medium' as const },
+    { id: 'tpl-2', text: 'Weekly Sync', notes: 'Update team on project status.', priority: 'Medium' as const },
+    { id: 'tpl-3', text: 'Code Review', priority: 'High' as const }
+];
+
 // --- BANNER COMPONENT ---
 const AnimatedTasklistIcon = () => (
     <svg 
@@ -644,6 +650,25 @@ const TasklistView: React.FC<{ user: User, allUsers: User[], initialListId?: str
     setTaskToDelete(null);
   };
 
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
+
+  const applyTemplate = (template: typeof mockTaskTemplates[0]) => {
+    const newTask: Task = {
+        id: `task-${Date.now()}`,
+        text: template.text,
+        notes: template.notes,
+        priority: template.priority,
+        completed: false,
+        updatedAt: Date.now(),
+    };
+    setTaskLists(taskLists.map(list => 
+        list.id === selectedListId 
+            ? { ...list, tasks: [...list.tasks, newTask] }
+            : list
+    ));
+    setShowTemplateMenu(false);
+  };
+
   return (
     <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[3px] pb-24 md:pb-8">
       <div className="flex-1 flex flex-col gap-3 overflow-y-auto no-scrollbar">
@@ -716,18 +741,46 @@ const TasklistView: React.FC<{ user: User, allUsers: User[], initialListId?: str
 
             <div className="flex-1 overflow-y-auto p-4 sm:p-6 no-scrollbar space-y-4">
               {/* Add Task Quick Row */}
-              <form onSubmit={handleAddTask} className="flex items-center gap-4 py-2 group cursor-pointer">
-                <div className="w-6 h-6 flex items-center justify-center">
-                    <PlusIcon className="w-5 h-5 text-blue-600" />
-                </div>
-                <input
-                    type="text"
-                    value={newTaskText}
-                    onChange={(e) => setNewTaskText(e.target.value)}
-                    placeholder="Thêm nhiệm vụ"
-                    className="flex-1 bg-transparent border-none text-lg text-slate-500 placeholder-slate-400 focus:outline-none focus:ring-0 focus:text-slate-800 font-medium"
-                />
-              </form>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-2">
+                  <form onSubmit={handleAddTask} className="flex-1 flex items-center gap-4 group cursor-pointer">
+                    <div className="w-6 h-6 flex items-center justify-center">
+                        <PlusIcon className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <input
+                        type="text"
+                        value={newTaskText}
+                        onChange={(e) => setNewTaskText(e.target.value)}
+                        placeholder="Thêm nhiệm vụ"
+                        className="flex-1 bg-transparent border-none text-lg text-slate-500 placeholder-slate-400 focus:outline-none focus:ring-0 focus:text-slate-800 font-medium"
+                    />
+                  </form>
+                  <div className="relative shrink-0">
+                      <button 
+                          onClick={() => setShowTemplateMenu(!showTemplateMenu)}
+                          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-md transition-colors"
+                      >
+                          <PlusIcon className="w-4 h-4"/> Sử dụng mẫu
+                      </button>
+                      {showTemplateMenu && (
+                          <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-lg shadow-xl border border-slate-200 z-50 overflow-hidden">
+                              <div className="p-2 border-b border-slate-100 bg-slate-50 text-xs font-semibold text-slate-500 uppercase">Chọn mẫu công việc</div>
+                              <ul className="max-h-60 overflow-y-auto no-scrollbar">
+                                  {mockTaskTemplates.map(tpl => (
+                                      <li key={tpl.id}>
+                                          <button 
+                                              onClick={() => applyTemplate(tpl)}
+                                              className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-b-0"
+                                          >
+                                              <span className="block font-medium text-slate-800 text-sm mb-1">{tpl.text}</span>
+                                              {tpl.notes && <span className="block text-xs text-slate-500 line-clamp-1">{tpl.notes}</span>}
+                                          </button>
+                                      </li>
+                                  ))}
+                              </ul>
+                          </div>
+                      )}
+                  </div>
+              </div>
 
               <div className="space-y-4">
                 <AnimatePresence initial={false}>

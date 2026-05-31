@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { User, RecentItem } from '../App';
+import { User, RecentItem, View } from '../App';
 import ContactsBanner from './ContactsBanner';
 import ContactCard, { Contact } from './ContactCard';
-import { UsersIcon, GoogleIcon, SearchIcon, GridIcon, ListIcon, SitemapIcon, UserPlusIcon, UploadIcon, DownloadIcon } from './icons';
+import { UsersIcon, GoogleIcon, SearchIcon, GridIcon, ListIcon, SitemapIcon, UserPlusIcon, UploadIcon, DownloadIcon, ChatIcon } from './icons';
 import { useLanguage } from './LanguageContext';
 import CreateContactModal from './CreateContactModal';
 import OrgChartView from './OrgChartView';
@@ -19,7 +19,6 @@ export const initialContacts: Contact[] = [
     { id: '8', name: 'Hung Thai', title: 'Quản trị viên cấp cao', email: 'hungthai84@gmail.com', phone: '091-234-5678', avatar: 'https://i.pravatar.cc/150?u=8', department: 'Quản trị hệ thống', managerId: '1', type: 'directory' },
 ];
 
-
 const getInitials = (name: string) => {
     const names = name.split(' ');
     if (names.length > 1) {
@@ -31,9 +30,10 @@ const getInitials = (name: string) => {
 interface ContactsViewProps {
   user: User;
   onItemViewed: (item: RecentItem) => void;
+  onNavigate?: (view: View) => void;
 }
 
-const ContactsView: React.FC<ContactsViewProps> = ({ onItemViewed }) => {
+const ContactsView: React.FC<ContactsViewProps> = ({ onItemViewed, onNavigate }) => {
     const [view, setView] = useState<'card' | 'list' | 'org'>('card');
     const [searchTerm, setSearchTerm] = useState('');
     const [contacts, setContacts] = useState<Contact[]>(initialContacts);
@@ -177,7 +177,10 @@ const ContactsView: React.FC<ContactsViewProps> = ({ onItemViewed }) => {
                         <div className="flex-1 overflow-auto p-6 no-scrollbar">
                             {view === 'card' && (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {filteredContacts.map(c => <div key={c.id} onClick={() => handleContactView(c)} className="cursor-pointer"><ContactCard contact={c} /></div>)}
+                                    {filteredContacts.map(c => <div key={c.id} onClick={() => handleContactView(c)} className="cursor-pointer"><ContactCard contact={c} onChatClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onNavigate) onNavigate('chat');
+                                    }} /></div>)}
                                 </div>
                             )}
                             {view === 'list' && (
@@ -193,12 +196,21 @@ const ContactsView: React.FC<ContactsViewProps> = ({ onItemViewed }) => {
                                         </thead>
                                         <tbody>
                                             {filteredContacts.map((c) => (
-                                                <tr key={c.id} onClick={() => handleContactView(c)} className={`border-t border-slate-200/60 hover:bg-white/30 cursor-pointer`}>
+                                                <tr key={c.id} onClick={() => handleContactView(c)} className={`border-t border-slate-200/60 hover:bg-white/30 cursor-pointer group`}>
                                                     <td className="p-3">
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-8 h-8 rounded-full bg-cyan-500 text-white flex items-center justify-center font-bold text-xs shrink-0">{c.avatar.length > 2 && c.avatar.startsWith('http') ? <img src={c.avatar} alt={c.name} className="w-full h-full object-cover rounded-full" /> : getInitials(c.name)}</div>
                                                             <div className="flex items-center gap-1.5">
-                                                              <span className="font-semibold text-slate-800">{c.name}</span>
+                                                              <span className="font-semibold text-slate-800 flex items-center gap-2">
+                                                                  {c.name}
+                                                                  <button 
+                                                                    onClick={(e) => { e.stopPropagation(); if(onNavigate) onNavigate('chat'); }}
+                                                                    className="opacity-0 group-hover:opacity-100 p-1.5 rounded-full bg-slate-100 hover:bg-cyan-50 text-slate-400 hover:text-cyan-600 transition-all"
+                                                                    title="Trò chuyện"
+                                                                  >
+                                                                    <ChatIcon className="w-3.5 h-3.5" />
+                                                                  </button>
+                                                              </span>
                                                               {c.source === 'google' && <GoogleIcon className="w-3.5 h-3.5" title="From Google Contacts"/>}
                                                             </div>
                                                         </div>

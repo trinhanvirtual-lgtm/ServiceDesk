@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import NotesBanner from './NotesBanner';
 import NoteCard, { Note } from './NoteCard';
-import { BellIcon, PencilIcon, ArchiveIcon, TrashIcon, PinIcon, TypeIcon, PaletteIcon, UserPlusIcon, ImageIcon, MoreVerticalIcon, UndoIcon, RedoIcon, LightbulbIcon, CheckIcon } from './icons';
+import { BellIcon, PencilIcon, ArchiveIcon, PinIcon, TypeIcon, PaletteIcon, UserPlusIcon, ImageIcon, MoreVerticalIcon, UndoIcon, RedoIcon, CheckIcon } from './icons';
 
 export const mockNotes: Note[] = [
   {
@@ -186,29 +186,6 @@ const NotesView: React.FC = () => {
             <NotesBanner />
         </div>
         <div className="flex flex-1 min-h-0 bg-white/40 backdrop-blur-xl rounded-xl shadow-lg overflow-hidden">
-            {/* Left Sidebar for Notes */}
-            <div className="w-64 p-4 border-r border-white/50 flex-col gap-2 hidden md:flex">
-                <div className="flex justify-between items-center px-2 mb-4">
-                    <h2 className="text-lg font-bold text-slate-800">Ghi chú</h2>
-                </div>
-                  <button className="flex items-center gap-4 w-full px-3 py-2.5 rounded-lg bg-yellow-100 text-slate-900 font-semibold">
-                    <LightbulbIcon className="w-5 h-5"/> <span>Ghi chú</span>
-                  </button>
-                  <button className="flex items-center gap-4 w-full px-3 py-2.5 rounded-lg hover:bg-slate-100 text-slate-600 font-medium">
-                    <BellIcon className="w-5 h-5"/> <span>Nhắc nhở</span>
-                  </button>
-                  <button className="flex items-center gap-4 w-full px-3 py-2.5 rounded-lg hover:bg-slate-100 text-slate-600 font-medium">
-                    <PencilIcon className="w-5 h-5"/> <span>Chỉnh sửa nhãn</span>
-                  </button>
-                   <div className="w-full border-t my-2 border-slate-200"></div>
-                  <button className="flex items-center gap-4 w-full px-3 py-2.5 rounded-lg hover:bg-slate-100 text-slate-600 font-medium">
-                    <ArchiveIcon className="w-5 h-5"/> <span>Lưu trữ</span>
-                  </button>
-                  <button className="flex items-center gap-4 w-full px-3 py-2.5 rounded-lg hover:bg-slate-100 text-slate-600 font-medium">
-                    <TrashIcon className="w-5 h-5"/> <span>Thùng rác</span>
-                  </button>
-            </div>
-
             {/* Main Content */}
             <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar p-6">
                  <CreateNote onAddNote={handleAddNote} />

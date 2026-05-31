@@ -491,7 +491,7 @@ const AppContent: React.FC = () => {
       case 'tasklist':
         return <TasklistView user={user} allUsers={allUsers} initialListId={activeTaskListId} />;
       case 'contacts':
-        return <ContactsView user={user} onItemViewed={handleItemViewed} />;
+        return <ContactsView user={user} onItemViewed={handleItemViewed} onNavigate={handleNavigate} />;
       case 'calendar':
         return <CalendarView user={user} events={events} onSaveEvent={handleSaveEvent} onEditEvent={handleEditEvent} onOpenModal={() => { setEditingEvent(null); setEventModalOpen(true); }} onItemViewed={handleItemViewed} />;
       case 'notes':
@@ -504,11 +504,11 @@ const AppContent: React.FC = () => {
         return <EmailClient user={user} onItemViewed={handleItemViewed} />;
       case 'team-chat':
       case 'chat':
-        return <ChatView user={user} />;
+        return <ChatView user={user} allUsers={allUsers} />;
       case 'newsfeed':
         return <NewsfeedView user={user} />;
        case 'tasks':
-        return <TaskView onItemViewed={handleItemViewed} />;
+        return <TaskView onItemViewed={handleItemViewed} onSendNotification={handleSendNotification} />;
       case 'training':
         return <TrainingDashboardView user={user} onNavigate={handleNavigate} />;
       case 'class-detail':
@@ -526,22 +526,16 @@ const AppContent: React.FC = () => {
     setMobileActivityOpen(false);
   }
 
-  const handleCreateDemoNotification = async () => {
+  const handleSendNotification = async (notifData: Omit<AppNotification, 'id' | 'createdAt'>) => {
     if (!user) return;
     
     const demoNotification: AppNotification = {
-        id: `demo-${Date.now()}`,
-        userId: user.id,
-        title: 'Hệ thống (Demo)',
-        message: 'Bạn vừa nhận được phân công nhiệm vụ mới. Vui lòng kiểm tra.',
-        read: false,
-        createdAt: Date.now(),
-        type: 'task',
-        link: 'tasklist'
+        ...notifData,
+        id: `notif-${Date.now()}-${Math.random()}`,
+        createdAt: Date.now()
     };
 
     if (user.id === 'user-1') {
-      console.log('Using mock user, updating state directly.');
       setNotifications(prev => [demoNotification, ...prev]);
       setActiveToasts(prev => [...prev, demoNotification]);
       return;
@@ -558,8 +552,19 @@ const AppContent: React.FC = () => {
         link: demoNotification.link
       });
     } catch (error) {
-       console.error("Error creating demo notification", error);
+       console.error("Error creating notification", error);
     }
+  };
+
+  const handleCreateDemoNotification = async () => {
+    handleSendNotification({
+        userId: user?.id || 'user-1',
+        title: 'Hệ thống (Demo)',
+        message: 'Bạn vừa nhận được phân công nhiệm vụ mới. Vui lòng kiểm tra.',
+        read: false,
+        type: 'task',
+        link: 'tasklist'
+    });
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;

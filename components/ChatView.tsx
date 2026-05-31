@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { User } from '../App';
 import { HashtagIcon, PaperAirplaneIcon, SearchIcon, XIcon, PlusIcon, SmileIcon, UserCircleIcon } from './icons';
 import ChatBanner from './ChatBanner';
-import { Contact } from './ContactCard';
 import { initialContacts } from './ContactsView';
 import { db, auth } from '../firebase';
 import { 
@@ -103,11 +102,12 @@ const getInitials = (name: string) => {
 
 interface ChatViewProps {
   user: User;
+  allUsers?: User[];
 }
 
 export const mockMessages: Message[] = [];
 
-const ChatView: React.FC<ChatViewProps> = ({ user }) => {
+const ChatView: React.FC<ChatViewProps> = ({ user, allUsers = [] }) => {
     const [channels, setChannels] = useState<Channel[]>([]);
     const [messages, setMessages] = useState<Message[]>([]);
     const [activeChannel, setActiveChannel] = useState<Channel | null>(null);
@@ -120,10 +120,45 @@ const ChatView: React.FC<ChatViewProps> = ({ user }) => {
     const [showEmojiPicker, setShowEmojiPicker] = useState<string | null>(null);
     const [isSelectingContact, setIsSelectingContact] = useState(false);
     const [contactSearchTerm, setContactSearchTerm] = useState('');
+    const [selectTab, setSelectTab] = useState<'employees' | 'contacts'>('employees');
 
     const commonEmojis = ['👍', '❤️', '😂', '😮', '😢', '🔥', '✅', '🚀'];
 
-    const handleSelectContactChat = async (contact: Contact) => {
+    const getDMHelper = (channel: Channel, currentUserUid: string) => {
+        const otherMemberId = channel.members.find(mId => mId !== currentUserUid) || '';
+        
+        // Find in allUsers
+        const foundUser = allUsers.find(u => u.id === otherMemberId);
+        if (foundUser) {
+            return {
+                name: foundUser.name,
+                avatar: foundUser.avatar,
+                online: true,
+                role: foundUser.role === 'superadmin' ? 'Quản trị viên cấp cao' : foundUser.role === 'admin' ? 'Quản trị viên' : 'Thành viên'
+            };
+        }
+        
+        // Find in initialContacts
+        const foundContact = initialContacts.find(c => c.id === otherMemberId);
+        if (foundContact) {
+            return {
+                name: foundContact.name,
+                avatar: foundContact.avatar,
+                online: false,
+                role: foundContact.title
+            };
+        }
+        
+        // Fallback
+        return {
+            name: channel.name,
+            avatar: channel.avatar,
+            online: false,
+            role: 'Thành viên'
+        };
+    };
+
+    const handleSelectContactChat = async (contact: { id: string; name: string; avatar?: string }) => {
         const currentUser = auth.currentUser;
         if (!currentUser) return;
 
@@ -430,22 +465,27 @@ const ChatView: React.FC<ChatViewProps> = ({ user }) => {
                                         {channels.filter(c => c.type === 'dm').length === 0 && (
                                             <p className="px-2 py-1 text-xs text-slate-400 italic">Chưa có cuộc hội thoại nào.</p>
                                         )}
-                                        {channels.filter(c => c.type === 'dm').map(channel => (
-                                            <button key={channel.id} onClick={() => handleChannelSelect(channel)} className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors ${activeChannel?.id === channel.id ? 'bg-white/80 text-slate-900' : 'text-slate-600 hover:bg-white/50'}`}>
-                                                <div className="relative shrink-0">
-                                                    <div className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold text-xs overflow-hidden">
-                                                        {channel.avatar && channel.avatar.startsWith('http') ? (
-                                                            <img src={channel.avatar} alt={channel.name} className="w-full h-full object-cover rounded-full" />
-                                                        ) : (
-                                                            channel.avatar || getInitials(channel.name)
-                                                        )}
+                                        {channels.filter(c => c.type === 'dm').map(channel => {
+                                            const dmInfo = auth.currentUser ? getDMHelper(channel, auth.currentUser.uid) : { name: channel.name, avatar: channel.avatar, online: false, role: 'Thành viên' };
+                                            return (
+                                                <button key={channel.id} onClick={() => handleChannelSelect(channel)} className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors ${activeChannel?.id === channel.id ? 'bg-white/80 text-slate-900' : 'text-slate-600 hover:bg-white/50'}`}>
+                                                    <div className="relative shrink-0">
+                                                        <div className="w-6 h-6 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold text-xs overflow-hidden">
+                                                            {dmInfo.avatar && dmInfo.avatar.startsWith('http') ? (
+                                                                <img src={dmInfo.avatar} alt={dmInfo.name} className="w-full h-full object-cover rounded-full" />
+                                                            ) : (
+                                                                dmInfo.avatar || getInitials(dmInfo.name)
+                                                            )}
+                                                        </div>
+                                                        <span className={`absolute -bottom-0.5 -right-0.5 block h-2.5 w-2.5 rounded-full ${dmInfo.online ? 'bg-green-500' : 'bg-slate-400'} ring-1 ring-white dark:ring-slate-700`}></span>
                                                     </div>
-                                                    <span className={`absolute -bottom-0.5 -right-0.5 block h-2.5 w-2.5 rounded-full ${channel.online ? 'bg-green-500' : 'bg-slate-400'} ring-1 ring-white dark:ring-slate-700`}></span>
-                                                </div>
-                                                <span className="font-medium flex-1 truncate">{channel.name}</span>
-                                                {channel.unreadCount && channel.unreadCount > 0 && <span className="ml-auto text-xs font-bold bg-red-500 text-white w-5 h-5 flex items-center justify-center rounded-full">{channel.unreadCount}</span>}
-                                            </button>
-                                        ))}
+                                                    <div className="flex-1 min-w-0">
+                                                        <span className="font-medium block text-xs truncate">{dmInfo.name}</span>
+                                                    </div>
+                                                    {channel.unreadCount && channel.unreadCount > 0 && <span className="ml-auto text-xs font-bold bg-red-500 text-white w-5 h-5 flex items-center justify-center rounded-full">{channel.unreadCount}</span>}
+                                                </button>
+                                            );
+                                        })}
                                     </>
                                 )}
                             </div>
@@ -472,25 +512,32 @@ const ChatView: React.FC<ChatViewProps> = ({ user }) => {
                                                 </button>
                                             </div>
                                         ) : (
-                                            <div className="flex justify-between items-center">
-                                                <div className="truncate">
-                                                    <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 truncate">
-                                                        {activeChannel.type === 'channel' ? `#${activeChannel.name}` : activeChannel.name}
-                                                        {activeChannel.type === 'dm' && (
-                                                            <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${activeChannel.online ? 'bg-green-500' : 'bg-slate-400'}`} title={activeChannel.online ? 'Online' : 'Offline'}></span>
-                                                        )}
-                                                    </h2>
-                                                    <p className="text-sm text-slate-600 truncate">
-                                                        {activeChannel.type === 'dm' 
-                                                            ? (activeChannel.online ? 'Đang hoạt động' : 'Ngoại tuyến')
-                                                            : 'Chào mừng bạn đến với kênh thảo luận.'
-                                                        }
-                                                    </p>
-                                                </div>
-                                                <button onClick={() => setIsSearchOpen(true)} className="p-2 rounded-full hover:bg-black/10 text-slate-500 shrink-0" title="Tìm kiếm trong cuộc trò chuyện">
-                                                    <SearchIcon className="w-5 h-5"/>
-                                                </button>
-                                            </div>
+                                            (() => {
+                                                const dmInfo = activeChannel.type === 'dm' && auth.currentUser 
+                                                    ? getDMHelper(activeChannel, auth.currentUser.uid) 
+                                                    : { name: activeChannel.name, avatar: activeChannel.avatar, online: false };
+                                                return (
+                                                    <div className="flex justify-between items-center">
+                                                        <div className="truncate">
+                                                            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 truncate">
+                                                                {activeChannel.type === 'channel' ? `#${activeChannel.name}` : dmInfo.name}
+                                                                {activeChannel.type === 'dm' && (
+                                                                    <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${dmInfo.online ? 'bg-green-500' : 'bg-slate-400'}`} title={dmInfo.online ? 'Online' : 'Offline'}></span>
+                                                                )}
+                                                            </h2>
+                                                            <p className="text-sm text-slate-600 truncate">
+                                                                {activeChannel.type === 'dm' 
+                                                                    ? (dmInfo.online ? 'Đang hoạt động' : 'Ngoại tuyến')
+                                                                    : 'Chào mừng bạn đến với kênh thảo luận.'
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                        <button onClick={() => setIsSearchOpen(true)} className="p-2 rounded-full hover:bg-black/10 text-slate-500 shrink-0" title="Tìm kiếm trong cuộc trò chuyện">
+                                                            <SearchIcon className="w-5 h-5"/>
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })()
                                         )}
                                     </div>
                                     <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
@@ -604,15 +651,15 @@ const ChatView: React.FC<ChatViewProps> = ({ user }) => {
                 </div>
             </div>
 
-            {/* Modal Chọn người trong danh bạ để chat */}
+            {/* Modal Chọn người trong hệ thống / danh bạ để chat */}
             {isSelectingContact && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
                     <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[80vh] animate-scale-in overflow-hidden">
                         {/* Header */}
                         <div className="p-4 border-b border-slate-100 flex items-center justify-between shrink-0">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">Bắt đầu chat với danh bạ</h3>
-                                <p className="text-xs text-slate-500">Chọn một người từ danh bạ để nhắn tin trực tiếp.</p>
+                                <h3 className="text-lg font-bold text-slate-900">Bắt đầu cuộc trò chuyện</h3>
+                                <p className="text-xs text-slate-500">Chọn một tài khoản hoặc liên hệ để bắt đầu chat trực tiếp 1-on-1.</p>
                             </div>
                             <button
                                 onClick={() => {
@@ -625,6 +672,32 @@ const ChatView: React.FC<ChatViewProps> = ({ user }) => {
                             </button>
                         </div>
 
+                        {/* Top Tabs */}
+                        <div className="flex border-b border-slate-100 bg-slate-50/50 shrink-0">
+                            <button
+                                type="button"
+                                onClick={() => setSelectTab('employees')}
+                                className={`flex-1 py-3 text-xs font-bold transition-all border-b-2 text-center ${
+                                    selectTab === 'employees'
+                                        ? 'border-cyan-600 text-cyan-600 bg-white'
+                                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50/80'
+                                }`}
+                            >
+                                Tài khoản hệ thống ({allUsers ? allUsers.filter(u => u.id !== user.id).length : 0})
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setSelectTab('contacts')}
+                                className={`flex-1 py-3 text-xs font-bold transition-all border-b-2 text-center ${
+                                    selectTab === 'contacts'
+                                        ? 'border-cyan-600 text-cyan-600 bg-white'
+                                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50/80'
+                                }`}
+                            >
+                                Danh bạ ({initialContacts.length})
+                            </button>
+                        </div>
+
                         {/* Search Bar */}
                         <div className="p-3 bg-slate-50 border-b border-slate-100 shrink-0">
                             <div className="relative">
@@ -633,48 +706,89 @@ const ChatView: React.FC<ChatViewProps> = ({ user }) => {
                                     type="text"
                                     value={contactSearchTerm}
                                     onChange={(e) => setContactSearchTerm(e.target.value)}
-                                    placeholder="Tìm kiếm theo tên hoặc phòng ban..."
+                                    placeholder={selectTab === 'employees' ? 'Tìm tài khoản theo tên hoặc email...' : 'Tìm trong danh bạ...'}
                                     className="w-full bg-white border border-slate-200 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none placeholder-slate-400 text-sm text-slate-800 rounded-lg py-2 pl-9 pr-3 transition-colors"
                                 />
                             </div>
                         </div>
 
-                        {/* Contacts List */}
+                        {/* Contacts/Employees List */}
                         <div className="flex-1 overflow-y-auto p-2 space-y-1 min-h-0">
-                            {initialContacts
-                                .filter(c => 
-                                    c.name.toLowerCase().includes(contactSearchTerm.toLowerCase()) || 
-                                    (c.department && c.department.toLowerCase().includes(contactSearchTerm.toLowerCase()))
-                                )
-                                .map(contact => (
-                                    <button
-                                        key={contact.id}
-                                        onClick={() => handleSelectContactChat(contact)}
-                                        className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left hover:bg-slate-50 active:bg-slate-100 transition-colors group"
-                                    >
-                                        <div className="w-10 h-10 rounded-full bg-cyan-500 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm overflow-hidden">
-                                            {contact.avatar && contact.avatar.startsWith('http') ? (
-                                                <img src={contact.avatar} alt={contact.name} className="w-full h-full object-cover rounded-full" />
-                                            ) : (
-                                                getInitials(contact.name)
-                                            )}
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="font-semibold text-slate-800 text-sm truncate group-hover:text-cyan-700 transition-colors">{contact.name}</p>
-                                            <p className="text-xs text-slate-500 truncate">{contact.title}</p>
-                                            {contact.department && (
-                                                <span className="inline-block mt-0.5 bg-slate-100 text-slate-600 group-hover:bg-cyan-50 group-hover:text-cyan-700 text-[9px] font-bold px-1.5 py-0.5 rounded transition-colors uppercase tracking-wider">
-                                                    Phòng {contact.department}
+                            {selectTab === 'employees' ? (
+                                allUsers
+                                    .filter(u => u.id !== user.id)
+                                    .filter(u => 
+                                        u.name.toLowerCase().includes(contactSearchTerm.toLowerCase()) || 
+                                        u.email.toLowerCase().includes(contactSearchTerm.toLowerCase())
+                                    )
+                                    .map(emp => (
+                                        <button
+                                            key={emp.id}
+                                            onClick={() => handleSelectContactChat(emp)}
+                                            className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left hover:bg-slate-50 active:bg-slate-100 transition-colors group"
+                                        >
+                                            <div className="w-10 h-10 rounded-full bg-cyan-600 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm overflow-hidden uppercase">
+                                                {emp.avatar && emp.avatar.startsWith('http') ? (
+                                                    <img src={emp.avatar} alt={emp.name} className="w-full h-full object-cover rounded-full" />
+                                                ) : (
+                                                    getInitials(emp.name)
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-semibold text-slate-800 text-sm truncate group-hover:text-cyan-700 transition-colors">{emp.name}</p>
+                                                <p className="text-xs text-slate-500 truncate">{emp.email}</p>
+                                                <span className="inline-block mt-0.5 bg-cyan-50 text-cyan-700 text-[9px] font-bold px-1.5 py-0.5 rounded transition-colors uppercase tracking-wider">
+                                                    {emp.role === 'superadmin' ? 'Quản trị viên cấp cao' : emp.role === 'admin' ? 'Quản trị viên' : 'Nhân viên'}
                                                 </span>
-                                            )}
-                                        </div>
-                                        <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <span className="text-xs font-bold text-cyan-600 bg-cyan-50 px-2 py-1 rounded-md">Nhắn tin</span>
-                                        </div>
-                                    </button>
-                                ))
-                            }
-                            {initialContacts.filter(c => 
+                                            </div>
+                                            <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span className="text-xs font-bold text-cyan-600 bg-cyan-50 px-2 py-1 rounded-md">Trò chuyện</span>
+                                            </div>
+                                        </button>
+                                    ))
+                            ) : (
+                                initialContacts
+                                    .filter(c => 
+                                        c.name.toLowerCase().includes(contactSearchTerm.toLowerCase()) || 
+                                        (c.department && c.department.toLowerCase().includes(contactSearchTerm.toLowerCase()))
+                                    )
+                                    .map(contact => (
+                                        <button
+                                            key={contact.id}
+                                            onClick={() => handleSelectContactChat(contact)}
+                                            className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left hover:bg-slate-50 active:bg-slate-100 transition-colors group"
+                                        >
+                                            <div className="w-10 h-10 rounded-full bg-indigo-550 text-white flex items-center justify-center font-bold text-sm shrink-0 shadow-sm overflow-hidden uppercase">
+                                                {contact.avatar && contact.avatar.startsWith('http') ? (
+                                                    <img src={contact.avatar} alt={contact.name} className="w-full h-full object-cover rounded-full" />
+                                                ) : (
+                                                    getInitials(contact.name)
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="font-semibold text-slate-800 text-sm truncate group-hover:text-cyan-700 transition-colors">{contact.name}</p>
+                                                <p className="text-xs text-slate-500 truncate">{contact.title}</p>
+                                                {contact.department && (
+                                                    <span className="inline-block mt-0.5 bg-slate-100 text-slate-600 group-hover:bg-cyan-55 group-hover:text-cyan-700 text-[9px] font-bold px-1.5 py-0.5 rounded transition-colors uppercase tracking-wider">
+                                                        Phòng {contact.department}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <span className="text-xs font-bold text-cyan-600 bg-cyan-50 px-2 py-1 rounded-md">Trò chuyện</span>
+                                            </div>
+                                        </button>
+                                    ))
+                            )}
+                            {selectTab === 'employees' && allUsers.filter(u => u.id !== user.id).filter(u => 
+                                u.name.toLowerCase().includes(contactSearchTerm.toLowerCase()) || 
+                                u.email.toLowerCase().includes(contactSearchTerm.toLowerCase())
+                            ).length === 0 && (
+                                <div className="text-center py-8 text-slate-400 text-sm">
+                                    Không tìm thấy tài khoản nhân viên nào thỏa mãn.
+                                </div>
+                            )}
+                            {selectTab === 'contacts' && initialContacts.filter(c => 
                                 c.name.toLowerCase().includes(contactSearchTerm.toLowerCase()) || 
                                 (c.department && c.department.toLowerCase().includes(contactSearchTerm.toLowerCase()))
                             ).length === 0 && (
