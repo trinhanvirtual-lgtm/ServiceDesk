@@ -358,7 +358,7 @@ const PostCard: React.FC<{
     };
 
     return (
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-sm p-5 transition-all duration-300 hover:shadow-md">
+        <div className="bg-[--color-surface-secondary] border border-[--color-border-secondary] backdrop-blur-md rounded-2xl shadow-sm p-5 transition-all duration-300 hover:shadow-md">
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
@@ -366,13 +366,16 @@ const PostCard: React.FC<{
                         src={post.author.avatar.startsWith('http') ? post.author.avatar : undefined} 
                         alt={post.author.name} 
                         className="w-11 h-11 rounded-full object-cover bg-amber-100 text-amber-800 ring-2 ring-slate-100 dark:ring-slate-800 font-bold flex items-center justify-center text-xs" 
+                        onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                        }}
                     />
                     <div>
-                        <p className="font-bold text-sm text-slate-800 dark:text-slate-100">
+                        <p className="font-bold text-sm text-[--color-text-primary]">
                             {post.author.name}
                             {buildHeaderText()}
                         </p>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-500 font-semibold">{post.timestamp}</p>
+                        <p className="text-[11px] text-[--color-text-secondary] font-semibold">{post.timestamp}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -382,13 +385,13 @@ const PostCard: React.FC<{
                     </div>
                     {post.isPinned && <span title="Pinned post"><PinIconLc className="w-4 h-4 text-amber-500" /></span>}
                     <div className="relative group">
-                         <button className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"><MoreHorizontalIcon className="w-4 h-4"/></button>
-                         <div className="absolute top-full right-0 mt-1 w-44 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-100 dark:border-slate-800 z-30 p-1.5 hidden group-hover:block animate-fade-in-down">
-                            <button onClick={() => onTogglePin(post.id)} className="w-full text-left flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                         <button className="p-1.5 rounded-full hover:bg-[--color-surface-tertiary] text-slate-400"><MoreHorizontalIcon className="w-4 h-4"/></button>
+                         <div className="absolute top-full right-0 mt-1 w-44 bg-[--color-surface-tertiary] rounded-xl shadow-xl border border-[--color-border-secondary] z-30 p-1.5 hidden group-hover:block animate-fade-in-down">
+                            <button onClick={() => onTogglePin(post.id)} className="w-full text-left flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold text-[--color-text-primary]">
                                 <PinIconLc className="w-3.5 h-3.5"/>
                                 {post.isPinned ? 'Bỏ ghim' : 'Ghim bài viết'}
                             </button>
-                            <button onClick={() => onToggleSave(post.id)} className="w-full text-left flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 text-xs font-semibold text-slate-700 dark:text-slate-200">
+                            <button onClick={() => onToggleSave(post.id)} className="w-full text-left flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-xs font-semibold text-[--color-text-primary]">
                                 <BookmarkIconLc className="w-3.5 h-3.5"/>
                                 {post.isSaved ? 'Bỏ lưu' : 'Lưu bài đăng'}
                             </button>
@@ -592,7 +595,7 @@ const PostCard: React.FC<{
                                         alt={cmt.author.name} 
                                         className="w-7 h-7 rounded-full object-cover bg-teal-100 shrink-0 text-[10px] font-bold flex items-center justify-center text-teal-800"
                                     />
-                                    <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 p-2.5 rounded-r-xl rounded-b-xl shadow-xs">
+                                    <div className="flex-1 bg-[--color-surface-primary] border border-[--color-border-secondary] p-2.5 rounded-r-xl rounded-b-xl shadow-xs">
                                         <div className="flex justify-between items-center mb-0.5">
                                             <span className="font-extrabold text-slate-800 dark:text-slate-200">{cmt.author.name}</span>
                                             <span className="text-[10px] text-slate-400 font-semibold">{cmt.timestamp}</span>
@@ -665,13 +668,13 @@ const PostComposer: React.FC<{
     ];
 
     return (
-        <div className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 p-4.5 rounded-2xl shadow-sm mb-6 transition-all duration-300">
+        <div className="bg-[--color-surface-secondary] border border-[--color-border-secondary] p-4.5 rounded-2xl shadow-sm mb-6 transition-all duration-300">
             {/* Input Row */}
             <div 
-                className="flex items-center gap-3.5 cursor-pointer pb-3.5 border-b border-slate-50 dark:border-slate-800" 
+                className="flex items-center gap-3.5 cursor-pointer pb-3.5 border-b border-[--color-border-secondary]" 
                 onClick={() => onOpenComposerWithType('quick')}
             >
-                <div className="w-11 h-11 bg-amber-100 text-amber-800 dark:bg-slate-850 dark:text-slate-350 flex items-center justify-center p-2 rounded-full w-11 h-11 shrink-0 ring-2 ring-slate-100 dark:ring-slate-800">
+                <div className="w-11 h-11 bg-amber-100 text-amber-800 dark:bg-slate-850 dark:text-slate-350 flex items-center justify-center p-2 rounded-full w-11 h-11 shrink-0 ring-2 ring-[--color-border-secondary]">
                     <img 
                         src={user.avatar || undefined} 
                         alt={user.name} 
@@ -683,7 +686,7 @@ const PostComposer: React.FC<{
                     <span className="font-bold text-xs">HT</span>
                 </div>
                 <div className="w-full">
-                    <div className="w-full bg-slate-50 hover:bg-slate-100/85 dark:bg-slate-950 dark:hover:bg-slate-900 rounded-full py-2.8 px-5 text-left text-xs sm:text-sm font-semibold text-slate-400 dark:text-slate-500 transition border border-transparent dark:border-slate-850">
+                    <div className="w-full bg-[--color-surface-primary] hover:bg-[--color-surface-tertiary] rounded-full py-2.8 px-5 text-left text-xs sm:text-sm font-semibold text-[--color-text-secondary] transition border border-[--color-border-secondary]">
                         Chia sẻ với đồng nghiệp...
                     </div>
                 </div>
@@ -697,7 +700,7 @@ const PostComposer: React.FC<{
                             key={act.type}
                             type="button"
                             onClick={() => onOpenComposerWithType(act.type)}
-                            className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-300 transition-colors ${act.color}`}
+                            className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-bold text-[--color-text-secondary] transition-colors ${act.color}`}
                         >
                             {act.icon}
                             <span className="hidden sm:inline">{act.label}</span>
@@ -709,7 +712,7 @@ const PostComposer: React.FC<{
                 <button 
                     type="button"
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)} 
-                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-bold text-slate-600 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800 text-[--color-text-secondary] transition-all shrink-0"
+                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-bold text-[--color-text-secondary] hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all shrink-0"
                 >
                     <span>Thêm</span>
                     <MoreHorizontalIconLc className="w-4 h-4 text-slate-500" />
@@ -717,7 +720,7 @@ const PostComposer: React.FC<{
 
                 {/* Beautiful Dropdown Portal */}
                 {isDropdownOpen && (
-                    <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-xl z-50 py-2.5 px-2 animate-fade-in-down">
+                    <div className="absolute top-full right-0 mt-2 w-56 bg-[--color-surface-tertiary] border border-[--color-border-secondary] rounded-2xl shadow-xl z-50 py-2.5 px-2 animate-fade-in-down">
                         {dropdownActions.map((dAct, idx) => {
                             const isDivider = idx === 5;
                             return (
@@ -1048,121 +1051,127 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
     };
 
     const FilterButton: React.FC<{ type: FilterType, icon: React.ReactNode, label: string }> = ({ type, icon, label }) => (
-        <button onClick={() => setFilter(type)} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg font-semibold transition-colors ${filter === type ? 'bg-white/80 dark:bg-slate-700/75 text-cyan-700 dark:text-cyan-400 font-bold shadow-xs' : 'text-[--color-text-secondary] hover:bg-white/50 dark:hover:bg-slate-700/40'}`}>
+        <button onClick={() => setFilter(type)} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold transition-all ${filter === type ? 'bg-[--color-accent-500]/10 text-[--color-accent-600] dark:text-[--color-accent-400] shadow-sm' : 'text-[--color-text-secondary] hover:bg-white/60 dark:hover:bg-slate-800/40'}`}>
             {icon}
             <span className="text-xs">{label}</span>
         </button>
     );
 
     return (
-        <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[3px] gap-3 pb-24 md:pb-8">
-            <div className="shrink-0">
-                <NewsfeedBanner />
-            </div>
-            <div className="flex-1 flex gap-8 min-h-0">
-                {/* Left Sidebar for Filters */}
-                <aside className="w-64 hidden lg:block shrink-0">
-                    <div className="flex flex-col gap-6">
-                        <div className="bg-white/60 dark:bg-slate-800/30 backdrop-blur-sm rounded-2xl p-4.5 flex flex-col gap-2 shadow-sm border border-slate-100 dark:border-slate-800">
+        <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[3px] pb-24 md:pb-8">
+            <div className="flex-1 flex flex-col gap-3 overflow-y-auto no-scrollbar">
+                <div className="shrink-0">
+                    <NewsfeedBanner />
+                </div>
+                
+                <div className="flex-1 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl rounded-xl shadow-lg overflow-hidden flex min-h-0 border border-slate-100 dark:border-slate-800">
+                    {/* Left Sidebar for Filters */}
+                    <aside className="w-64 hidden lg:flex flex-col border-r border-slate-100 dark:border-slate-800/80 bg-white/20 dark:bg-slate-900/10 shrink-0">
+                        <div className="p-4 flex flex-col gap-4">
                             <button 
                                 onClick={handleManualRefresh}
                                 disabled={isRefreshing}
-                                className="w-full mb-2 flex items-center justify-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-xl font-bold text-xs transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-xl font-bold text-xs transition-colors shadow-md active:scale-95 disabled:opacity-50"
                             >
-                                <SyncIcon className={`w-4.5 h-4.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                <SyncIcon className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                                 <span>{isRefreshing ? 'Đang tải...' : 'Làm mới bảng tin'}</span>
                             </button>
                             
-                            <div className="w-full border-t mb-2 border-slate-100 dark:border-slate-800"></div>
+                            <div className="w-full border-t border-slate-200/50 dark:border-slate-805"></div>
                             
-                            <FilterButton type="all" icon={<ListIcon className="w-5 h-5"/>} label="Tất cả bài viết" />
-                            <FilterButton type="unread" icon={<EyeOffIcon className="w-5 h-5"/>} label="Chưa xem" />
-                            <FilterButton type="pinned" icon={<PinIcon className="w-5 h-5"/>} label="Đã ghim" />
-                            <FilterButton type="saved" icon={<BookmarkIcon className="w-5 h-5"/>} label="Đã lưu" />
+                            <div className="flex flex-col gap-1">
+                                <FilterButton type="all" icon={<ListIcon className="w-4.5 h-4.5"/>} label="Tất cả bài viết" />
+                                <FilterButton type="unread" icon={<EyeOffIcon className="w-4.5 h-4.5"/>} label="Chưa xem" />
+                                <FilterButton type="pinned" icon={<PinIcon className="w-4.5 h-4.5"/>} label="Đã ghim" />
+                                <FilterButton type="saved" icon={<BookmarkIcon className="w-4.5 h-4.5"/>} label="Đã lưu" />
+                            </div>
                             
-                            <div className="w-full border-t my-2 border-slate-100 dark:border-slate-800"></div>
-                            <p className="px-2 text-[10px] font-extrabold uppercase tracking-widest text-slate-400">Không gian làm việc</p>
-                            <FilterButton type="all" icon={<UsersIconLc className="w-4.5 h-4.5 text-cyan-500" />} label="Toàn công ty" />
-                            <FilterButton type="all" icon={<UsersIconLc className="w-4.5 h-4.5 text-indigo-500" />} label="Team Marketing" />
+                            <div className="w-full border-t border-slate-200/50 dark:border-slate-805"></div>
+                            <p className="px-2.5 text-[10px] font-extrabold uppercase tracking-widest text-[--color-text-subtle] opacity-75">Không gian làm việc</p>
+                            <div className="flex flex-col gap-1">
+                                <FilterButton type="all" icon={<UsersIconLc className="w-4 h-4 text-cyan-500" />} label="Toàn công ty" />
+                                <FilterButton type="all" icon={<UsersIconLc className="w-4 h-4 text-indigo-500" />} label="Team Marketing" />
+                            </div>
                         </div>
-                    </div>
-                </aside>
-                {/* Main Feed */}
-                <div className="flex-1 flex flex-col gap-4 overflow-y-auto no-scrollbar pr-2 pb-6">
-                    {/* Search Bar - Encapsulated nicely inside a card */}
-                    <div className="bg-white/85 dark:bg-slate-900/50 backdrop-blur-md rounded-2xl p-3 shadow-xs border border-slate-100 dark:border-slate-800 sticky top-0 z-20">
-                        <form onSubmit={handleAISearch} className="flex items-center gap-3">
-                            <div className="relative flex-1">
-                                <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                <input 
-                                    type="text" 
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    placeholder="Tìm kiếm thông minh với AI (Vd: 'Công ty nghỉ hè', 'Bài đăng của Bình')..."
-                                    className="w-full font-semibold bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-850 rounded-xl py-2 pl-10 pr-4 text-xs focus:ring-1 focus:ring-cyan-500 outline-none transition-all dark:text-white"
-                                />
-                                {searchTerm && (
-                                    <button 
-                                        type="button"
-                                        onClick={clearSearch}
-                                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                                    >
-                                        <XIcon className="w-4 h-4" />
-                                    </button>
-                                )}
-                            </div>
-                            <button 
-                                type="submit"
-                                disabled={isSearchingAI || !searchTerm.trim()}
-                                className="bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white font-bold px-4.5 py-2 rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-sm shadow-cyan-600/10"
-                            >
-                                {isSearchingAI ? (
-                                    <SyncIcon className="w-4 h-4 animate-spin" />
-                                ) : (
-                                    <SparklesIcon className="w-4 h-4" />
-                                )}
-                                <span>{isSearchingAI ? 'Đang tìm...' : 'AI Search'}</span>
-                            </button>
-                        </form>
-                        {searchResults !== null && (
-                            <div className="mt-2.5 px-1 flex items-center justify-between">
-                                <p className="text-[10px] font-black uppercase text-cyan-600 dark:text-cyan-400">
-                                    {searchResults.length > 0 ? `Đã tìm thấy ${searchResults.length} kết quả phù hợp` : 'Không tìm thấy kết quả phù hợp nào'}
-                                </p>
-                                <button onClick={clearSearch} className="text-[10px] uppercase tracking-wider font-extrabold text-red-500 hover:text-red-650">Xóa kết quả</button>
-                            </div>
-                        )}
-                    </div>
+                    </aside>
 
-                    {/* Highly responsive Composition Widget */}
-                    <PostComposer 
-                        user={user} 
-                        onOpenComposerWithType={handleOpenComposerWithType} 
-                    />
-                    
-                    {/* Create Modal with pre-seed option support */}
-                    <CreatePostModal 
-                        user={user} 
-                        isOpen={isCreateModalOpen} 
-                        onClose={() => setIsCreateModalOpen(false)} 
-                        onSubmit={handleAddPost} 
-                        initialType={composerInitialType}
-                    />
+                    {/* Main Feed */}
+                    <div className="flex-1 flex flex-col gap-4 overflow-y-auto no-scrollbar p-6 min-h-0 bg-slate-50/10 dark:bg-slate-950/10">
+                        {/* Search Bar - Encapsulated nicely inside a card */}
+                        <div className="bg-[--color-surface-secondary] backdrop-blur-md rounded-2xl p-3 shadow-sm border border-[--color-border-secondary] sticky top-0 z-20">
+                            <form onSubmit={handleAISearch} className="flex items-center gap-3">
+                                <div className="relative flex-1">
+                                    <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                    <input 
+                                        type="text" 
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        placeholder="Tìm kiếm thông minh với AI (Vd: 'Công ty nghỉ hè', 'Bài đăng của Bình')..."
+                                        className="w-full font-semibold bg-[--color-surface-primary] text-[--color-text-primary] border border-[--color-border-secondary] rounded-xl py-2 pl-10 pr-4 text-xs focus:ring-1 focus:ring-[--color-accent-500] outline-none transition-all"
+                                    />
+                                    {searchTerm && (
+                                        <button 
+                                            type="button"
+                                            onClick={clearSearch}
+                                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                        >
+                                            <XIcon className="w-4 h-4" />
+                                        </button>
+                                    )}
+                                </div>
+                                <button 
+                                    type="submit"
+                                    disabled={isSearchingAI || !searchTerm.trim()}
+                                    className="bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white font-bold px-4.5 py-2.5 rounded-xl text-xs transition-all flex items-center gap-1.5 shadow-sm shadow-cyan-600/10"
+                                >
+                                    {isSearchingAI ? (
+                                        <SyncIcon className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <SparklesIcon className="w-4 h-4" />
+                                    )}
+                                    <span>{isSearchingAI ? 'Đang tìm...' : 'AI Search'}</span>
+                                </button>
+                            </form>
+                            {searchResults !== null && (
+                                <div className="mt-2.5 px-1 flex items-center justify-between">
+                                    <p className="text-[10px] font-black uppercase text-cyan-600 dark:text-cyan-400">
+                                        {searchResults.length > 0 ? `Đã tìm thấy ${searchResults.length} kết quả phù hợp` : 'Không tìm thấy kết quả phù hợp nào'}
+                                    </p>
+                                    <button onClick={clearSearch} className="text-[10px] uppercase tracking-wider font-extrabold text-red-500 hover:text-red-650">Xóa kết quả</button>
+                                </div>
+                            )}
+                        </div>
 
-                    {/* Standard Social Feed items */}
-                    <div className="space-y-4">
-                       {filteredPosts.map(post => (
-                           <PostCard 
-                               key={post.id} 
-                               post={post} 
-                               user={user}
-                               onTogglePin={handleTogglePin} 
-                               onToggleSave={handleToggleSave} 
-                               onUpdatePost={handleUpdatePost} 
-                               onVotePoll={handleVotePoll}
-                               onJoinEvent={handleJoinEvent}
-                           />
-                       ))}
+                        {/* Highly responsive Composition Widget */}
+                        <PostComposer 
+                            user={user} 
+                            onOpenComposerWithType={handleOpenComposerWithType} 
+                        />
+                        
+                        {/* Create Modal with pre-seed option support */}
+                        <CreatePostModal 
+                            user={user} 
+                            isOpen={isCreateModalOpen} 
+                            onClose={() => setIsCreateModalOpen(false)} 
+                            onSubmit={handleAddPost} 
+                            initialType={composerInitialType}
+                        />
+
+                        {/* Standard Social Feed items */}
+                        <div className="space-y-4">
+                           {filteredPosts.map(post => (
+                               <PostCard 
+                                   key={post.id} 
+                                   post={post} 
+                                   user={user}
+                                   onTogglePin={handleTogglePin} 
+                                   onToggleSave={handleToggleSave} 
+                                   onUpdatePost={handleUpdatePost} 
+                                   onVotePoll={handleVotePoll}
+                                   onJoinEvent={handleJoinEvent}
+                               />
+                           ))}
+                        </div>
                     </div>
                 </div>
             </div>
