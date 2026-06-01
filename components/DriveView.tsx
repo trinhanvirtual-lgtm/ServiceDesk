@@ -7,6 +7,8 @@ import {
     GoogleIcon, SyncIcon
 } from './icons';
 import { useLanguage } from './LanguageContext';
+import { showPicker } from '../googlePicker';
+import { getAccessToken } from '../googleTasks';
 
 // --- TYPES ---
 interface FileSystemItem {
@@ -59,10 +61,10 @@ const FolderTreeItem: React.FC<{ folder: FileSystemItem, currentFolderId: string
             <button
                 onClick={() => onSelect(folder.id)}
                 style={{ paddingLeft: `${level * 1.25 + 0.75}rem` }}
-                className={`w-full flex items-center gap-2 py-2 text-left rounded-md transition-colors ${isSelected ? 'bg-white/70 text-blue-800 font-semibold' : 'hover:bg-white/40 text-slate-700'}`}
+                className={`w-full flex items-center gap-2 py-2 text-left rounded-md transition-colors ${isSelected ? 'bg-white/70 text-[--color-accent-600] font-semibold' : 'hover:bg-white/40 text-[--color-text-primary]'}`}
             >
                 <FolderIcon className="w-5 h-5 shrink-0" />
-                <span className="truncate">{folder.name}</span>
+                <span className="truncate text-sm">{folder.name}</span>
             </button>
             {/* Can be extended to show sub-folders recursively */}
         </div>
@@ -204,6 +206,42 @@ const DriveView: React.FC<DriveViewProps> = ({ user, onItemViewed }) => {
         }
     };
 
+    const handleGooglePicker = async () => {
+        try {
+            const token = await getAccessToken();
+            showPicker(token, (result) => {
+                if (result.action === 'picked' && result.docs) {
+                    const newFiles: FileSystemItem[] = result.docs.map(doc => {
+                        let type: FileSystemItem['type'] = 'docx';
+                        if (doc.mimeType.includes('pdf')) type = 'pdf';
+                        else if (doc.mimeType.includes('image')) type = 'png';
+                        else if (doc.mimeType.includes('video')) type = 'mp4';
+
+                        return {
+                            id: doc.id,
+                            name: doc.name,
+                            type,
+                            size: '-',
+                            modifiedAt: new Date(doc.lastEditedUtc).toISOString().split('T')[0],
+                            owner: 'Google Drive',
+                            parentId: currentFolderId,
+                            source: 'google'
+                        };
+                    });
+                    setMockFileSystem(prev => {
+                        const existingIds = new Set(prev.map(i => i.id));
+                        const filtered = newFiles.filter(f => !existingIds.has(f.id));
+                        return [...prev, ...filtered];
+                    });
+                    showToast(`Đã thêm ${newFiles.length} tệp từ Google Drive!`);
+                }
+            });
+        } catch (error) {
+            console.error('Picker error:', error);
+            showToast('Không thể mở Google Picker. Kiểm tra cấu hình API Key.');
+        }
+    };
+
     return (
         <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[3px] pb-24 md:pb-8">
             <div className="flex-1 flex flex-col gap-3 overflow-y-auto no-scrollbar">
@@ -215,7 +253,7 @@ const DriveView: React.FC<DriveViewProps> = ({ user, onItemViewed }) => {
                         <aside className={`flex flex-col bg-white/30 border-r border-white/50 h-full transition-all duration-300 ease-in-out ${isFolderPaneCollapsed ? 'w-0' : 'w-64'}`}>
                         <div className={`flex-1 flex flex-col min-h-0 transition-opacity duration-200 ${isFolderPaneCollapsed ? 'opacity-0' : 'opacity-100'}`}>
                                 <div className="p-4 border-b border-white/50">
-                                    <h2 className="text-xl font-bold text-slate-800 truncate">My Drive</h2>
+                                    <h2 className="text-lg font-bold text-[--color-text-primary] truncate">My Drive</h2>
                                 </div>
                                 <div className="flex-1 p-2 overflow-y-auto no-scrollbar">
                                     {mockFileSystem.filter(f => f.type === 'folder' && f.parentId === 'root').map(folder => (
@@ -236,11 +274,11 @@ const DriveView: React.FC<DriveViewProps> = ({ user, onItemViewed }) => {
                     {/* Main Content Pane */}
                     <div className="flex-1 flex flex-col min-w-0">
                         <header className="p-4 border-b border-white/50 shrink-0 flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-2 text-sm text-slate-600 font-medium overflow-hidden">
+                            <div className="flex items-center gap-2 text-sm text-[--color-text-secondary] font-medium overflow-hidden">
                             {breadcrumbs.map((crumb, index) => (
                                 <React.Fragment key={crumb.id}>
-                                    {index > 0 && <span className="text-slate-400">/</span>}
-                                    <button onClick={() => handleSelectFolder(crumb.id)} className={`truncate max-w-[150px] p-1 rounded-md ${index === breadcrumbs.length-1 ? 'text-slate-800 font-bold' : 'hover:bg-white/50'}`}>{crumb.name}</button>
+                                    {index > 0 && <span className="text-[--color-text-subtle]">/</span>}
+                                    <button onClick={() => handleSelectFolder(crumb.id)} className={`truncate max-w-[150px] p-1 rounded-md ${index === breadcrumbs.length-1 ? 'text-[--color-text-primary] font-bold' : 'hover:bg-white/50'}`}>{crumb.name}</button>
                                 </React.Fragment>
                             ))}
                             </div>
@@ -258,6 +296,9 @@ const DriveView: React.FC<DriveViewProps> = ({ user, onItemViewed }) => {
                                 <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-2 py-2 px-4 bg-gradient-to-br from-blue-500 to-sky-600 text-white font-bold rounded-lg shadow-md hover:shadow-sky-500/40 transition-all transform hover:scale-105">
                                     <UploadIcon className="w-5 h-5"/> <span className="hidden sm:inline">Tải lên</span>
                                 </button>
+                                <button onClick={handleGooglePicker} className="flex items-center gap-2 py-2 px-4 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg shadow-md hover:bg-slate-50 transition-all transform hover:scale-105">
+                                    <GoogleIcon className="w-5 h-5"/> <span className="hidden sm:inline">Chọn từ Drive</span>
+                                </button>
                                 <div className="bg-white/50 p-1 rounded-lg flex items-center text-sm font-semibold">
                                     <button onClick={() => setViewMode('grid')} className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-white shadow text-blue-600' : 'text-slate-600 hover:bg-white/50'}`} title="Grid View"><GridIcon className="w-5 h-5" /></button>
                                     <button onClick={() => setViewMode('list')} className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-white shadow text-blue-600' : 'text-slate-600 hover:bg-white/50'}`} title="List View"><ListIcon className="w-5 h-5" /></button>
@@ -268,36 +309,36 @@ const DriveView: React.FC<DriveViewProps> = ({ user, onItemViewed }) => {
                             {viewMode === 'grid' ? (
                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
                                     {itemsInCurrentFolder.map(item => (
-                                        <button key={item.id} onClick={() => handleItemClick(item)} className={`relative p-4 bg-white/60 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group text-center flex flex-col items-center justify-center gap-2 ${selectedItemId === item.id ? 'ring-2 ring-blue-500' : 'ring-1 ring-transparent hover:ring-blue-400'}`}>
+                                        <button key={item.id} onClick={() => handleItemClick(item)} className={`relative p-4 bg-white/60 rounded-xl shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group text-center flex flex-col items-center justify-center gap-2 ${selectedItemId === item.id ? 'ring-2 ring-[--color-accent-500]' : 'ring-1 ring-transparent hover:ring-[--color-accent-400]'}`}>
                                             {item.source === 'google' && <GoogleIcon className="absolute top-2 right-2 w-4 h-4" title="From Google Drive" />}
-                                            <FileIcon type={item.type} className={`w-12 h-12 ${item.type === 'folder' ? 'text-blue-500' : 'text-slate-500'}`} />
-                                            <p className="font-semibold text-slate-700 w-full truncate">{item.name}</p>
+                                            <FileIcon type={item.type} className={`w-12 h-12 ${item.type === 'folder' ? 'text-[--color-accent-500]' : 'text-[--color-text-subtle]'}`} />
+                                            <p className="font-semibold text-[--color-text-primary] text-sm w-full truncate">{item.name}</p>
                                         </button>
                                     ))}
                                 </div>
                             ) : (
                                 <table className="w-full text-left">
-                                    <thead className="border-b border-slate-300/60">
+                                            <thead className="border-b border-[--color-border-secondary]">
                                         <tr>
-                                            <th className="p-3 font-semibold text-slate-600">Name</th>
-                                            <th className="p-3 font-semibold text-slate-600 hidden md:table-cell">Owner</th>
-                                            <th className="p-3 font-semibold text-slate-600 hidden sm:table-cell">Last Modified</th>
-                                            <th className="p-3 font-semibold text-slate-600 hidden lg:table-cell">File Size</th>
+                                            <th className="p-3 font-semibold text-[--color-text-secondary] text-sm">Name</th>
+                                            <th className="p-3 font-semibold text-[--color-text-secondary] text-sm hidden md:table-cell">Owner</th>
+                                            <th className="p-3 font-semibold text-[--color-text-secondary] text-sm hidden sm:table-cell">Last Modified</th>
+                                            <th className="p-3 font-semibold text-[--color-text-secondary] text-sm hidden lg:table-cell">File Size</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {itemsInCurrentFolder.map(item => (
-                                            <tr key={item.id} onClick={() => handleItemClick(item)} className={`border-t border-slate-200/60 hover:bg-white/50 cursor-pointer ${selectedItemId === item.id ? 'bg-blue-100/50' : ''}`}>
-                                                <td className="p-3 font-medium text-slate-800">
+                                            <tr key={item.id} onClick={() => handleItemClick(item)} className={`border-t border-[--color-border-secondary] hover:bg-white/50 cursor-pointer ${selectedItemId === item.id ? 'bg-[--color-accent-500]/10' : ''}`}>
+                                                <td className="p-3 font-medium text-[--color-text-primary] text-sm">
                                                     <div className="flex items-center gap-3">
-                                                        <FileIcon type={item.type} className={`w-6 h-6 shrink-0 ${item.type === 'folder' ? 'text-blue-500' : 'text-slate-500'}`} />
+                                                        <FileIcon type={item.type} className={`w-6 h-6 shrink-0 ${item.type === 'folder' ? 'text-[--color-accent-500]' : 'text-[--color-text-subtle]'}`} />
                                                         {item.name}
                                                         {item.source === 'google' && <GoogleIcon className="w-4 h-4" title="From Google Drive" />}
                                                     </div>
                                                 </td>
-                                                <td className="p-3 text-slate-600 hidden md:table-cell">{item.owner}</td>
-                                                <td className="p-3 text-slate-600 hidden sm:table-cell">{item.modifiedAt}</td>
-                                                <td className="p-3 text-slate-600 hidden lg:table-cell">{item.size}</td>
+                                                <td className="p-3 text-[--color-text-secondary] text-sm hidden md:table-cell">{item.owner}</td>
+                                                <td className="p-3 text-[--color-text-secondary] text-sm hidden sm:table-cell">{item.modifiedAt}</td>
+                                                <td className="p-3 text-[--color-text-secondary] text-sm hidden lg:table-cell">{item.size}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -311,12 +352,12 @@ const DriveView: React.FC<DriveViewProps> = ({ user, onItemViewed }) => {
                     <div className={`flex-1 flex flex-col min-h-0 p-4 gap-4 transition-opacity duration-200 ${selectedItem ? 'opacity-100' : 'opacity-0'}`}>
                             {selectedItem && <>
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-lg font-bold text-slate-800">Details</h3>
-                                    <button onClick={() => setSelectedItemId(null)} className="p-1.5 rounded-full hover:bg-black/10"><ChevronLeftIcon className="w-5 h-5 rotate-180" /></button>
+                                    <h3 className="text-lg font-bold text-[--color-text-primary]">Details</h3>
+                                    <button onClick={() => setSelectedItemId(null)} className="p-1.5 rounded-full hover:bg-black/10"><ChevronLeftIcon className="w-5 h-5 rotate-180 text-[--color-text-subtle]" /></button>
                                 </div>
                                 <div className="flex flex-col items-center justify-center p-6 bg-white/40 rounded-xl">
-                                    <FileIcon type={selectedItem.type} className="w-20 h-20 text-slate-600 mb-3" />
-                                    <p className="font-bold text-slate-800 text-center break-all">{selectedItem.name}</p>
+                                    <FileIcon type={selectedItem.type} className="w-20 h-20 text-[--color-text-subtle] mb-3" />
+                                    <p className="font-bold text-[--color-text-primary] text-center break-all text-sm">{selectedItem.name}</p>
                                 </div>
                                 <div className="flex justify-around items-center">
                                     <button 
@@ -330,18 +371,18 @@ const DriveView: React.FC<DriveViewProps> = ({ user, onItemViewed }) => {
                                     <button className="flex flex-col items-center gap-1 text-slate-600 hover:text-blue-600 transition-colors p-2 rounded-lg hover:bg-black/5"><DownloadIcon className="w-6 h-6" /> <span className="text-xs font-semibold">Download</span></button>
                                     <button className="flex flex-col items-center gap-1 text-slate-600 hover:text-red-600 transition-colors p-2 rounded-lg hover:bg-black/5"><TrashIcon className="w-6 h-6" /> <span className="text-xs font-semibold">Delete</span></button>
                                 </div>
-                                <div className="text-sm text-slate-700 space-y-2 bg-white/40 p-3 rounded-lg">
+                                <div className="text-sm text-[--color-text-primary] space-y-2 bg-white/40 p-3 rounded-lg">
                                     <p><strong>Type:</strong> <span className="capitalize">{selectedItem.type}</span></p>
                                     <p><strong>Size:</strong> {selectedItem.size}</p>
                                     <p><strong>Owner:</strong> {selectedItem.owner}</p>
                                     <p><strong>Modified:</strong> {selectedItem.modifiedAt}</p>
                                     {selectedItem.source === 'google' && <p><strong>Source:</strong> Google Drive</p>}
                                 </div>
-                                <div>
-                                    <h4 className="font-semibold text-slate-700 mb-2">Activity</h4>
-                                    <div className="space-y-2 text-sm">
-                                        <div className="flex items-center gap-2"><InfoIcon className="w-4 h-4 text-slate-500" /> <p>You created this item.</p></div>
-                                        <div className="flex items-center gap-2"><InfoIcon className="w-4 h-4 text-slate-500" /> <p>Alice viewed this item.</p></div>
+                                <div className="mt-2">
+                                    <h4 className="font-semibold text-[--color-text-secondary] mb-2 text-sm">Activity</h4>
+                                    <div className="space-y-2 text-xs text-[--color-text-secondary]">
+                                        <div className="flex items-center gap-2"><InfoIcon className="w-4 h-4 text-[--color-text-subtle]" /> <p>You created this item.</p></div>
+                                        <div className="flex items-center gap-2"><InfoIcon className="w-4 h-4 text-[--color-text-subtle]" /> <p>Alice viewed this item.</p></div>
                                     </div>
                                 </div>
                             </>}

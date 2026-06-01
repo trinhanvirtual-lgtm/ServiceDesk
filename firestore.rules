@@ -89,10 +89,21 @@ service cloud.firestore {
 
     function isValidPost(data) {
       return data.keys().hasAll(['content', 'authorId', 'type']) &&
-             data.keys().size() == 3 &&
-             data.content is string && data.content.size() <= 5000 &&
+             data.keys().size() >= 3 && data.keys().size() <= 15 &&
+             data.content is string && data.content.size() <= 10000 &&
              data.authorId is string && data.authorId == request.auth.uid &&
-             data.type is string && data.type.size() <= 50;
+             data.type is string && data.type.size() <= 50 &&
+             (!('image' in data) || (data.image is string && data.image.size() <= 1000000)) &&
+             (!('tags' in data) || data.tags is list) &&
+             (!('reactions' in data) || data.reactions is list) &&
+             (!('comments' in data) || data.comments is list) &&
+             (!('poll' in data) || data.poll is map) &&
+             (!('event' in data) || data.event is map) &&
+             (!('kudos' in data) || data.kudos is map) &&
+             (!('welcome' in data) || data.welcome is map) &&
+             (!('backgroundGradient' in data) || (data.backgroundGradient is string)) &&
+             (!('author' in data) || data.author is map) &&
+             (!('createdAt' in data) || (data.createdAt is timestamp || data.createdAt is number));
     }
 
     function isValidChannel(data) {
@@ -113,6 +124,32 @@ service cloud.firestore {
              data.authorId is string && data.authorId == request.auth.uid &&
              data.authorName is string && data.authorName.size() <= 100 &&
              data.createdAt is number &&
+             (!('authorAvatar' in data) || (data.authorAvatar is string && data.authorAvatar.size() <= 1024));
+    }
+
+    function isValidBlogArticle(data) {
+      return data.keys().hasAll(['title', 'content', 'authorId', 'authorName', 'status', 'createdAt']) &&
+             data.keys().size() >= 6 && data.keys().size() <= 11 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.content is string && data.content.size() <= 100000 &&
+             data.authorId is string && data.authorId == request.auth.uid &&
+             data.authorName is string && data.authorName.size() <= 100 &&
+             data.status is string && data.status in ['Published', 'Draft', 'Archived'] &&
+             (data.createdAt is number || data.createdAt is timestamp) &&
+             (!('tags' in data) || (data.tags is list && data.tags.size() <= 20)) &&
+             (!('previewImage' in data) || (data.previewImage is string && data.previewImage.size() <= 1024)) &&
+             (!('isPinned' in data) || data.isPinned is bool) &&
+             (!('serverCreatedAt' in data) || data.serverCreatedAt is timestamp);
+    }
+
+    function isValidComment(data) {
+      return data.keys().hasAll(['articleId', 'authorId', 'authorName', 'content', 'createdAt']) &&
+             (data.keys().size() >= 5 && data.keys().size() <= 7) &&
+             data.articleId is string && data.articleId.size() <= 128 &&
+             data.authorId is string && data.authorId == request.auth.uid &&
+             data.authorName is string && data.authorName.size() <= 100 &&
+             data.content is string && data.content.size() <= 5000 &&
+             (data.createdAt is number || data.createdAt is timestamp) &&
              (!('authorAvatar' in data) || (data.authorAvatar is string && data.authorAvatar.size() <= 1024));
     }
 
@@ -178,6 +215,22 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidId(postId) && isValidPost(incoming());
       allow update: if isSignedIn() && isValidId(postId) && existing().authorId == request.auth.uid && isValidPost(incoming()) && incoming().authorId == existing().authorId && incoming().diff(existing()).affectedKeys().hasOnly(['content', 'type']);
       allow delete: if isSignedIn() && isValidId(postId) && resource.data.authorId == request.auth.uid;
+    }
+
+    match /blogArticles/{articleId} {
+      allow read: if isSignedIn() && isValidId(articleId);
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(articleId) && isValidBlogArticle(incoming());
+      allow update: if isSignedIn() && isValidId(articleId) && existing().authorId == request.auth.uid && isValidBlogArticle(incoming()) && incoming().authorId == existing().authorId && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content', 'status', 'tags', 'previewImage', 'isPinned']);
+      allow delete: if isSignedIn() && isValidId(articleId) && resource.data.authorId == request.auth.uid;
+
+      match /comments/{commentId} {
+        allow read: if isSignedIn() && isValidId(commentId);
+        allow list: if isSignedIn();
+        allow create: if isSignedIn() && isValidId(commentId) && isValidComment(incoming()) && incoming().articleId == articleId;
+        allow update: if isSignedIn() && isValidId(commentId) && existing().authorId == request.auth.uid && isValidComment(incoming()) && incoming().authorId == existing().authorId && incoming().articleId == existing().articleId && incoming().diff(existing()).affectedKeys().hasOnly(['content', 'authorAvatar', 'authorName']);
+        allow delete: if isSignedIn() && isValidId(commentId) && resource.data.authorId == request.auth.uid;
+      }
     }
 
     match /channels/{channelId} {

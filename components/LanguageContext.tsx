@@ -27,7 +27,7 @@ const translations = {
     accountSlogan: 'Tinh chỉnh mọi thứ theo cách của bạn.',
     appearance: 'Giao diện',
     // Left Sidebar
-    dashboard: 'Dashboard',
+    dashboard: 'Trang chủ',
     newsfeed: 'Bảng tin',
     drive: 'Lưu trữ',
     tasklist: 'Công việc',
@@ -375,6 +375,24 @@ const translations = {
     resultsTasks: 'Công việc',
     resultsEvents: 'Sự kiện',
     resultsMessages: 'Tin nhắn',
+    openNavigationMenu: 'Mở danh mục điều hướng',
+    submitSearch: 'Thực hiện tìm kiếm',
+    // Projects
+    projectList: 'Danh sách dự án',
+    newProject: 'Tạo dự án mới',
+    projectName: 'Tên dự án',
+    projectDesc: 'Mô tả dự án',
+    projectStatus: 'Trạng thái',
+    projectDueDate: 'Hạn chót',
+    projectDepartment: 'Phòng ban',
+    exportCSV: 'Xuất CSV',
+    exportPDF: 'Xuất PDF',
+    searchProjects: 'Tìm kiếm dự án theo tên hoặc mô tả...',
+    allDepartments: 'Tất cả phòng ban',
+    overdue: 'Quá hạn',
+    thisWeek: 'Tuần này',
+    thisMonth: 'Tháng này',
+    progress: 'Tiến độ',
   },
   en: {
     // General
@@ -747,6 +765,24 @@ const translations = {
     resultsTasks: 'Tasks',
     resultsEvents: 'Events',
     resultsMessages: 'Messages',
+    openNavigationMenu: 'Open navigation menu',
+    submitSearch: 'Submit search',
+    // Projects
+    projectList: 'Project List',
+    newProject: 'New Project',
+    projectName: 'Project Name',
+    projectDesc: 'Project Description',
+    projectStatus: 'Status',
+    projectDueDate: 'Due Date',
+    projectDepartment: 'Department',
+    exportCSV: 'Export CSV',
+    exportPDF: 'Export PDF',
+    searchProjects: 'Search projects by name or description...',
+    allDepartments: 'All Departments',
+    overdue: 'Overdue',
+    thisWeek: 'This Week',
+    thisMonth: 'This Month',
+    progress: 'Progress',
   }
 };
 

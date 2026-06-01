@@ -1,18 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Banner from './Banner';
-import { User, RecentItem, View, CheckInEntry } from '../App';
+import { User, RecentItem, View, CheckInEntry, ActivityItem } from '../App';
 import { useLanguage } from './LanguageContext';
 import { CalendarEvent } from './CalendarView';
 import { mockTaskLists } from './TasklistView';
 import { mockNotes } from './NotesView';
-import { mockPosts } from './NewsfeedView';
 import { initialFileSystem } from './DriveView';
 import { mockEmails } from './EmailClient';
-import { mockArticles } from './BlogView';
 import { initialMeetings } from './MeetingView';
 import { mockClasses } from './TrainingDashboardView';
 import { SettingsIcon, XIcon, ChevronRightIcon, ChevronUpIcon, ChevronDownIcon, FileTextIcon, GripVerticalIcon, RssIcon, FolderIcon, ChecklistIcon, CalendarIcon, StickyNoteIcon, BookOpenIcon, GraduationCapIcon, MailIcon, ChatIcon } from './icons';
 import { motion, Reorder, AnimatePresence } from 'motion/react';
+import { db } from '../firebase';
+import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { Post } from './NewsfeedView';
 
 // --- WIDGET COMPONENTS ---
 
@@ -40,13 +41,29 @@ const WidgetCard: React.FC<{ title: string; icon?: React.ReactNode; onNavigate?:
 
 const LatestNewsfeedWidget: React.FC<{ onNavigate: () => void }> = ({ onNavigate }) => {
     const { t } = useLanguage();
-    const latestPost = useMemo(() => [...mockPosts].sort((a, b) => (b.isPinned ? 1 : 0) - (a.isPinned ? 1 : 0))[0], []);
+    const [latestPost, setLatestPost] = useState<Post | null>(null);
+
+    useEffect(() => {
+        const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(5));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+                const pinnedPosts = snapshot.docs.filter(d => d.data().isPinned);
+                const postToDisplay = pinnedPosts.length > 0 ? pinnedPosts[0] : snapshot.docs[0];
+                const data = postToDisplay.data();
+                setLatestPost({ id: postToDisplay.id, ...data });
+            } else {
+                setLatestPost(null);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
     return (
         <WidgetCard title={t('newsfeed')} icon={<RssIcon className="w-5 h-5 text-orange-500" />} onNavigate={onNavigate}>
             {latestPost ? (
                 <div className="p-2 bg-[--color-surface-primary] rounded-md space-y-1">
-                    <p className="text-xs font-bold text-[--color-text-subtle]">{latestPost.author.name}</p>
-                    <p className="font-semibold text-sm text-[--color-text-secondary]">{latestPost.content.substring(0, 100)}...</p>
+                    <p className="text-xs font-bold text-[--color-text-subtle]">{latestPost.author?.name || 'Đồng nghiệp'}</p>
+                    <p className="font-semibold text-sm text-[--color-text-secondary] line-clamp-2">{latestPost.content?.substring(0, 100)}...</p>
                 </div>
             ) : <p className="text-sm text-center text-[--color-text-subtle] mt-8">Không có bài đăng nào.</p>}
         </WidgetCard>
@@ -143,13 +160,27 @@ const RecentNotesWidget: React.FC<{ onNavigate: () => void }> = ({ onNavigate })
 
 const LatestArticleWidget: React.FC<{ onNavigate: () => void }> = ({ onNavigate }) => {
     const { t } = useLanguage();
-    const latestArticle = useMemo(() => mockArticles.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0], []);
+    const [latestArticle, setLatestArticle] = useState<{ title: string; authorName: string } | null>(null);
+
+    useEffect(() => {
+        const q = query(collection(db, 'blogArticles'), orderBy('createdAt', 'desc'), limit(1));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (!snapshot.empty) {
+                const data = snapshot.docs[0].data();
+                setLatestArticle({ title: data.title, authorName: data.authorName });
+            } else {
+                setLatestArticle(null);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
+
      return (
         <WidgetCard title={t('blog')} icon={<BookOpenIcon className="w-5 h-5 text-emerald-500" />} onNavigate={onNavigate}>
             {latestArticle ? (
                  <div className="p-2 bg-[--color-surface-primary] rounded-md space-y-1">
                     <p className="font-bold text-sm text-[--color-text-primary] truncate">{latestArticle.title}</p>
-                    <p className="text-xs text-[--color-text-subtle]">By {latestArticle.author}</p>
+                    <p className="text-xs text-[--color-text-subtle]">By {latestArticle.authorName}</p>
                 </div>
             ) : <p className="text-sm text-center text-[--color-text-subtle] mt-8">Không có bài viết nào.</p>}
         </WidgetCard>
@@ -221,6 +252,7 @@ interface MainContentProps {
   events: CalendarEvent[];
   onNavigate: (view: View, itemId?: string) => void;
   checkInLog: CheckInEntry[];
+  activityLog: ActivityItem[];
 }
 
 interface WidgetConfig {
@@ -237,7 +269,8 @@ interface WidgetSettings {
   visible: boolean;
 }
 
-const MainContent: React.FC<MainContentProps> = ({ user, events, onNavigate }) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const MainContent: React.FC<MainContentProps> = ({ user, recentlyViewed, events, onNavigate, checkInLog, activityLog }) => {
   const { t } = useLanguage();
   
   const ALL_WIDGETS: WidgetConfig[] = useMemo(() => [
@@ -342,7 +375,7 @@ const MainContent: React.FC<MainContentProps> = ({ user, events, onNavigate }) =
   }, [widgetSettings, ALL_WIDGETS]);
 
   return (
-    <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[3px] pb-24 md:pb-8">
+    <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[5px] pb-24 md:pb-8">
         {isCustomizeModalOpen && (
             <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 flex justify-center items-center p-4" aria-modal="true">
                 <div className="absolute inset-0" onClick={() => setIsCustomizeModalOpen(false)}></div>
@@ -393,11 +426,31 @@ const MainContent: React.FC<MainContentProps> = ({ user, events, onNavigate }) =
                 </div>
             </div>
         )}
-        <div className="overflow-y-auto no-scrollbar flex-1 flex flex-col gap-3">
-            <div className="p-[3px]">
+        <div className="overflow-y-auto no-scrollbar flex-1 flex flex-col gap-[5px]">
+            <div className="p-[5px] space-y-4">
               <Banner userName={user.name} />
+              
+              {/* AI Support Chat Section */}
+              <div className="bg-white/40 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-white/50 animate-fade-in">
+                  <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">AI</div>
+                      <h3 className="font-bold text-[--color-text-primary]">Trợ lý hỗ trợ AI</h3>
+                  </div>
+                  <div className="flex gap-2">
+                       <input 
+                          type="text" 
+                          placeholder="Bạn cần hỗ trợ gì hôm nay?" 
+                          className="flex-1 bg-white/70 border border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-300 focus:outline-none rounded-xl px-4 py-2 text-sm"
+                       />
+                       <button className="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-xl transition-all shadow-md active:scale-95">
+                           <ChatIcon className="w-5 h-5"/>
+                       </button>
+                  </div>
+                  <p className="text-[10px] text-[--color-text-subtle] mt-2 italic px-1">AI có thể trả lời các câu hỏi về quy trình, hỗ trợ kỹ thuật và quản lý công việc.</p>
+              </div>
+
             </div>
-            <div className="px-[3px] pb-3">
+            <div className="px-[5px] pb-3">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-2xl font-bold text-[--color-text-primary]">{t('dashboard')}</h2>
                     <button onClick={() => setIsCustomizeModalOpen(true)} className="flex items-center gap-2 text-sm font-semibold text-[--color-text-secondary] hover:text-[--color-accent-600] p-2 rounded-lg transition-colors">

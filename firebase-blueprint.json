@@ -127,6 +127,37 @@
         "link": { "type": "string" }
       },
       "required": ["userId", "title", "message", "read", "createdAt", "type"]
+    },
+    "BlogArticle": {
+      "title": "BlogArticle",
+      "description": "A blog article",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "previewImage": { "type": "string" },
+        "status": { "type": "string", "enum": ["Published", "Draft", "Archived"] },
+        "isPinned": { "type": "boolean" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["title", "content", "authorId", "authorName", "status", "createdAt"]
+    },
+    "Comment": {
+      "title": "Comment",
+      "description": "A comment on a blog article",
+      "type": "object",
+      "properties": {
+        "articleId": { "type": "string" },
+        "authorId": { "type": "string" },
+        "authorName": { "type": "string" },
+        "authorAvatar": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["articleId", "authorId", "authorName", "content", "createdAt"]
     }
   },
   "firestore": {
@@ -161,6 +192,14 @@
     "/posts/{postId}": {
       "schema": { "$ref": "#/entities/Post" },
       "description": "Global newsfeed posts."
+    },
+    "/blogArticles/{articleId}": {
+      "schema": { "$ref": "#/entities/BlogArticle" },
+      "description": "Blog articles."
+    },
+    "/blogArticles/{articleId}/comments/{commentId}": {
+      "schema": { "$ref": "#/entities/Comment" },
+      "description": "Comments on blog articles."
     },
     "/channels/{channelId}": {
       "schema": { "$ref": "#/entities/Channel" },

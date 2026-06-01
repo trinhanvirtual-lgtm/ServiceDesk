@@ -36,7 +36,7 @@ const ProjectBanner: React.FC = () => {
       
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-center gap-2">
                 <div className="text-center md:text-left">
-                    <h1 className="text-lg sm:text-xl font-bold">{t('projects') || 'Dự án'}</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold">{t('projects') || 'Dự án'}</h1>
                     <p className="mt-0.5 text-xs text-teal-100 max-w-lg">
                         Quản lý các dự án, tiến độ công việc và phân bổ nguồn lực hiệu quả.
                     </p>

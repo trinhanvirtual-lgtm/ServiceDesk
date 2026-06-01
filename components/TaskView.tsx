@@ -3,7 +3,7 @@ import TaskManagementBanner from './TaskManagementBanner';
 import { FileTextIcon, XIcon, ClipboardListIcon, TrashIcon, ClockIcon } from './icons';
 import { RecentItem, AppNotification } from '../App';
 
-type TaskStatus = 'Todo' | 'Doing' | 'Review' | 'Done';
+type TaskStatus = 'Cần làm' | 'Đang làm' | 'Xem xét' | 'Hoàn thành';
 type TaskPriority = 'Cao' | 'Trung bình' | 'Thấp';
 
 export interface TaskLabel {
@@ -31,14 +31,14 @@ interface Task {
 }
 
 const mockTasks: Task[] = [
-    { id: 't1', title: 'Thiết kế banner quảng cáo', project: 'Marketing Mùa lễ hội', priority: 'Cao', status: 'Todo', notes: 'Yêu cầu: Kích thước 1200x628px. Tone màu chủ đạo là đỏ và vàng. Chèn logo ở góc phải.', dueDate: '2024-08-10', labels: [{name: 'Urgent', color: 'bg-red-500'}], comments: [] },
-    { id: 't2', title: 'Phân tích hành vi người dùng', project: 'Tối ưu hóa Onboarding', priority: 'Cao', status: 'Doing', notes: '', dueDate: '2024-08-15', labels: [{name: 'Feature', color: 'bg-blue-500'}], comments: [] },
-    { id: 't3', title: 'Viết nội dung social media', project: 'Marketing Mùa lễ hội', priority: 'Trung bình', status: 'Todo', labels: [], comments: [] },
-    { id: 't4', title: 'Test A/B trang giá', project: 'Tối ưu hóa Conversion', priority: 'Trung bình', status: 'Review', notes: 'So sánh 2 phiên bản: layout 3 cột và layout bảng giá chi tiết. Liên hệ team design để lấy file Figma.', dueDate: '2024-08-05', labels: [{name: 'Testing', color: 'bg-purple-500'}], comments: [] },
-    { id: 't5', 'title': 'Fix bug #512 - Nút submit bị vô hiệu hóa', project: 'Bảo trì hệ thống', priority: 'Cao', status: 'Doing', notes: 'Bug xảy ra trên trình duyệt Safari phiên bản 15.x. Cần kiểm tra lại logic validation form.', labels: [{name: 'Bug', color: 'bg-red-600'}], comments: [] },
-    { id: 't6', title: 'Lên kế hoạch cho Q1/2025', project: 'Chiến lược công ty', priority: 'Thấp', status: 'Done', labels: [], comments: [] },
-    { id: 't7', title: 'Redesign trang đăng ký', project: 'Tối ưu hóa Onboarding', priority: 'Trung bình', status: 'Review', labels: [{name: 'Design', color: 'bg-pink-500'}], comments: [] },
-    { id: 't8', 'title': 'Cập nhật thư viện dependencies', project: 'Bảo trì hệ thống', priority: 'Thấp', status: 'Done', notes: 'Chạy `npm audit` để kiểm tra các lỗ hổng bảo mật sau khi cập nhật.', labels: [{name: 'Maintenance', color: 'bg-slate-500'}], comments: [] },
+    { id: 't1', title: 'Thiết kế banner quảng cáo', project: 'Marketing Mùa lễ hội', priority: 'Cao', status: 'Cần làm', notes: 'Yêu cầu: Kích thước 1200x628px. Tone màu chủ đạo là đỏ và vàng. Chèn logo ở góc phải.', dueDate: '2024-08-10', labels: [{name: 'Gấp', color: 'bg-red-500'}], comments: [] },
+    { id: 't2', title: 'Phân tích hành vi người dùng', project: 'Tối ưu hóa Onboarding', priority: 'Cao', status: 'Đang làm', notes: '', dueDate: '2024-08-15', labels: [{name: 'Tính năng', color: 'bg-blue-500'}], comments: [] },
+    { id: 't3', title: 'Viết nội dung social media', project: 'Marketing Mùa lễ hội', priority: 'Trung bình', status: 'Cần làm', labels: [], comments: [] },
+    { id: 't4', title: 'Test A/B trang giá', project: 'Tối ưu hóa Conversion', priority: 'Trung bình', status: 'Xem xét', notes: 'So sánh 2 phiên bản: layout 3 cột và layout bảng giá chi tiết. Liên hệ team design để lấy file Figma.', dueDate: '2024-08-05', labels: [{name: 'Thử nghiệm', color: 'bg-purple-500'}], comments: [] },
+    { id: 't5', 'title': 'Fix bug #512 - Nút submit bị vô hiệu hóa', project: 'Bảo trì hệ thống', priority: 'Cao', status: 'Đang làm', notes: 'Bug xảy ra trên trình duyệt Safari phiên bản 15.x. Cần kiểm tra lại logic validation form.', labels: [{name: 'Lỗi', color: 'bg-red-600'}], comments: [] },
+    { id: 't6', title: 'Lên kế hoạch cho Q1/2025', project: 'Chiến lược công ty', priority: 'Thấp', status: 'Hoàn thành', labels: [], comments: [] },
+    { id: 't7', title: 'Redesign trang đăng ký', project: 'Tối ưu hóa Onboarding', priority: 'Trung bình', status: 'Xem xét', labels: [{name: 'Thiết kế', color: 'bg-pink-500'}], comments: [] },
+    { id: 't8', 'title': 'Cập nhật thư viện dependencies', project: 'Bảo trì hệ thống', priority: 'Thấp', status: 'Hoàn thành', notes: 'Chạy `npm audit` để kiểm tra các lỗ hổng bảo mật sau khi cập nhật.', labels: [{name: 'Bảo trì', color: 'bg-slate-500'}], comments: [] },
 ];
 
 const priorityStyles: Record<TaskPriority, string> = {
@@ -48,10 +48,10 @@ const priorityStyles: Record<TaskPriority, string> = {
 };
 
 const statusStyles: Record<TaskStatus, { bg: string, text: string }> = {
-    'Todo': { bg: 'bg-slate-200', text: 'text-slate-800' },
-    'Doing': { bg: 'bg-blue-200', text: 'text-blue-800' },
-    'Review': { bg: 'bg-purple-200', text: 'text-purple-800' },
-    'Done': { bg: 'bg-green-200', text: 'text-green-800' },
+    'Cần làm': { bg: 'bg-slate-200', text: 'text-slate-800' },
+    'Đang làm': { bg: 'bg-blue-200', text: 'text-blue-800' },
+    'Xem xét': { bg: 'bg-purple-200', text: 'text-purple-800' },
+    'Hoàn thành': { bg: 'bg-green-200', text: 'text-green-800' },
 }
 
 interface TaskDetailModalProps {
@@ -78,7 +78,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task: initialTask, on
         if (!newComment.trim()) return;
         const comment: TaskComment = {
             id: Date.now().toString(),
-            author: 'Current User',
+            author: 'Người dùng hiện tại',
             text: newComment,
             timestamp: Date.now()
         };
@@ -127,10 +127,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task: initialTask, on
                                 onChange={(e) => handleChange('status', e.target.value as TaskStatus)}
                                 className="w-full bg-[--color-surface-primary] p-2.5 rounded-md border border-[--color-border-secondary] focus:ring-1 focus:ring-[--color-accent-500] focus:outline-none"
                             >
-                                <option value="Todo">Todo</option>
-                                <option value="Doing">Doing</option>
-                                <option value="Review">Review</option>
-                                <option value="Done">Done</option>
+                                <option value="Cần làm">Cần làm</option>
+                                <option value="Đang làm">Đang làm</option>
+                                <option value="Xem xét">Xem xét</option>
+                                <option value="Hoàn thành">Hoàn thành</option>
                             </select>
                         </div>
                         <div className="flex-1">
@@ -162,7 +162,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task: initialTask, on
                             value={newLabelName}
                             onChange={(e) => setNewLabelName(e.target.value)}
                             onKeyDown={handleAddLabel}
-                            placeholder="Gõ tên nhãn và nhấn Enter (VD: Urgent)"
+                            placeholder="Gõ tên nhãn và nhấn Enter (VD: Quan trọng)"
                             className="w-full bg-[--color-surface-primary] p-2 rounded-md border border-[--color-border-secondary] text-sm focus:ring-1 focus:ring-[--color-accent-500] focus:outline-none"
                         />
                     </div>
@@ -220,7 +220,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task: initialTask, on
                         className="flex items-center gap-2 py-2 px-4 rounded-lg text-red-600 font-semibold hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors"
                     >
                         <TrashIcon className="w-4 h-4" />
-                        Delete Task
+                        Xóa Công việc
                     </button>
                     <div className="flex gap-3">
                         <button type="button" onClick={onClose} className="py-2 px-5 rounded-lg text-[--color-text-secondary] font-semibold hover:bg-black/10 dark:hover:bg-white/10 transition-colors">Hủy</button>
@@ -298,7 +298,7 @@ const KanbanColumn: React.FC<{
                                     onDeleteTask(task.id);
                                 }}
                                 className="absolute top-2 right-2 p-1.5 bg-white/50 rounded-full text-red-500 hover:bg-red-100 opacity-0 group-hover:opacity-100 transition-opacity"
-                                aria-label="Delete task"
+                                aria-label="Xóa công việc"
                             >
                                 <TrashIcon className="w-4 h-4" />
                             </button>
@@ -317,7 +317,7 @@ interface TaskViewProps {
 }
 
 const TaskView: React.FC<TaskViewProps> = ({ onItemViewed, onSendNotification }) => {
-    const columns: TaskStatus[] = ['Todo', 'Doing', 'Review', 'Done'];
+    const columns: TaskStatus[] = ['Cần làm', 'Đang làm', 'Xem xét', 'Hoàn thành'];
     const [tasks, setTasks] = useState<Task[]>(mockTasks);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);

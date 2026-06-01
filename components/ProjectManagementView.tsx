@@ -1,18 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../App';
 import { useLanguage } from './LanguageContext';
-import { SitemapIcon, PlusIcon, FileEditIcon, TrashIcon, XIcon, ChecklistIcon, SearchIcon, ChevronDownIcon, ChevronUpIcon, ShareIcon } from './icons';
+import { SitemapIcon, PlusIcon, FileEditIcon, TrashIcon, XIcon, ChecklistIcon, SearchIcon, ChevronDownIcon, ChevronUpIcon, ShareIcon, AlertCircleIcon, FilePdfIcon } from './icons';
 import { db, auth } from '../firebase';
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import { handleFirestoreError, OperationType } from '../firebase-errors';
 import { mockTaskLists } from './TasklistView';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 import ProjectBanner from './ProjectBanner';
+import { AppNotification } from '../App';
 
 interface ProjectManagementViewProps {
   user: User;
   onNavigateToTasks?: (taskListId: string) => void;
+  onSendNotification?: (notif: Omit<AppNotification, 'id' | 'createdAt'>) => void;
 }
 
 interface ProjectData {
@@ -27,11 +31,14 @@ interface ProjectData {
   department?: 'IT' | 'Marketing' | 'HR' | '';
 }
 
-const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user, onNavigateToTasks }) => {
+const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user, onNavigateToTasks, onSendNotification }) => {
   const { t } = useLanguage();
   const [projects, setProjects] = useState<ProjectData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dueDateFilter, setDueDateFilter] = useState<'all' | 'this_week' | 'this_month' | 'overdue'>('all');
+  const [notifiedProjects, setNotifiedProjects] = useState<Set<string>>(new Set());
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -112,6 +119,32 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user, onN
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!onSendNotification || projects.length === 0) return;
+
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const threeDaysLater = new Date();
+    threeDaysLater.setDate(today.getDate() + 3);
+    const threeDaysLaterStr = threeDaysLater.toISOString().split('T')[0];
+
+    projects.forEach(project => {
+      if (project.status === 'active' && project.dueDate && !notifiedProjects.has(project.id)) {
+        if (project.dueDate >= todayStr && project.dueDate <= threeDaysLaterStr) {
+          onSendNotification({
+            userId: user.id,
+            title: 'Sắp đến hạn dự án',
+            message: `Dự án "${project.name}" sẽ hết hạn vào ngày ${new Date(project.dueDate).toLocaleDateString('vi-VN')}. Hãy kiểm tra tiến độ!`,
+            read: false,
+            type: 'task',
+            link: 'projects'
+          });
+          setNotifiedProjects(prev => new Set(prev).add(project.id));
+        }
+      }
+    });
+  }, [projects, onSendNotification, user.id, notifiedProjects]);
 
   const openAddModal = (parentId: string = '') => {
     setModalMode('add');
@@ -214,6 +247,113 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user, onN
     link.click();
     document.body.removeChild(link);
     showToast("Đã xuất báo cáo CSV thành công!");
+  };
+
+  const handleExportPDF = () => {
+    if (projects.length === 0) {
+      showToast("Không có dự án nào để xuất báo cáo!");
+      return;
+    }
+
+    const filtered = getFilteredProjects();
+    const doc = new jsPDF();
+    const today = new Date().toLocaleDateString('vi-VN');
+
+    doc.setFontSize(20);
+    doc.text('BÁO CÁO TỔNG QUAN DỰ ÁN', 105, 15, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`Ngày xuất báo cáo: ${today}`, 105, 22, { align: 'center' });
+
+    const tableData = filtered.map(p => [
+      p.name,
+      p.description,
+      p.status === 'active' ? 'Đang thực hiện' : p.status === 'completed' ? 'Đã hoàn thành' : 'Tạm dừng',
+      p.dueDate || 'Không có',
+      p.department || 'Không có',
+      `${calculateProjectProgress(p)}%`
+    ]);
+
+    autoTable(doc, {
+      startY: 30,
+      head: [['Tên dự án', 'Mô tả', 'Trạng thái', 'Hạn chót', 'Phòng ban', 'Tiến độ']],
+      body: tableData,
+      theme: 'grid',
+      headStyles: { fillStyle: 'F0F0F0', textColor: 0, fontStyle: 'bold' },
+      styles: { fontSize: 8, font: 'helvetica' },
+    });
+
+    doc.save(`Bao_cao_du_an_${new Date().toISOString().slice(0, 10)}.pdf`);
+    showToast("Đã xuất báo cáo PDF thành công!");
+  };
+
+  const calculateProjectProgress = (project: ProjectData) => {
+    const listIds = project.taskListIds || (project.taskListId ? [project.taskListId] : []);
+    if (listIds.length === 0) return 0;
+
+    let totalTasks = 0;
+    let completedTasks = 0;
+
+    listIds.forEach(id => {
+      const list = mockTaskLists.find(l => l.id === id);
+      if (list) {
+        totalTasks += list.tasks.length;
+        completedTasks += list.tasks.filter(t => t.completed).length;
+      }
+    });
+
+    if (totalTasks === 0) return 0;
+    return Math.round((completedTasks / totalTasks) * 100);
+  };
+
+  const getFilteredProjects = () => {
+    let filtered = projects;
+
+    if (searchTerm.trim()) {
+      const lowerSearch = searchTerm.toLowerCase();
+      filtered = filtered.filter(p => 
+        p.name.toLowerCase().includes(lowerSearch) || 
+        p.description.toLowerCase().includes(lowerSearch)
+      );
+    }
+
+    if (selectedDepartment !== 'all') {
+      filtered = filtered.filter(p => selectedDepartment === 'None' ? !p.department : p.department === selectedDepartment);
+    }
+
+    if (dueDateFilter !== 'all') {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const todayStr = today.toISOString().split('T')[0];
+      
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - today.getDay());
+      const startOfWeekStr = startOfWeek.toISOString().split('T')[0];
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      const endOfWeekStr = endOfWeek.toISOString().split('T')[0];
+
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const startOfMonthStr = startOfMonth.toISOString().split('T')[0];
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      const endOfMonthStr = endOfMonth.toISOString().split('T')[0];
+
+      filtered = filtered.filter(p => {
+        if (!p.dueDate) return false;
+        
+        if (dueDateFilter === 'overdue') {
+          return p.dueDate < todayStr && p.status !== 'completed';
+        }
+        if (dueDateFilter === 'this_week') {
+          return p.dueDate >= startOfWeekStr && p.dueDate <= endOfWeekStr;
+        }
+        if (dueDateFilter === 'this_month') {
+          return p.dueDate >= startOfMonthStr && p.dueDate <= endOfMonthStr;
+        }
+        return true;
+      });
+    }
+
+    return filtered;
   };
 
   const getStatusBadge = (status: string) => {
@@ -358,87 +498,128 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user, onN
 
       <div className="w-full flex-1">
         <div className="bg-[--color-surface-secondary] rounded-2xl shadow-xl overflow-hidden border border-[--color-border-secondary] flex flex-col min-h-[500px]">
-          <div className="p-6 border-b border-[--color-border-secondary] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-                  <h2 className="text-xl font-bold text-[--color-text-primary]">{t('projectList') || 'Danh sách dự án'}</h2>
-                  
-                  {/* View Mode Segmented Switch - Custom Refined Design */}
-                  <div className="bg-[--color-surface-tertiary] p-1 rounded-xl flex items-center gap-1 border border-[--color-border-secondary] w-max select-none shadow-inner">
-                      <button
-                          type="button"
-                          onClick={() => setViewMode('list')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                              viewMode === 'list'
-                                  ? 'bg-[--color-accent-600] text-white shadow-md'
-                                  : 'text-[--color-text-secondary] hover:text-[--color-text-primary]'
-                          }`}
-                      >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-                              <line x1="8" y1="6" x2="21" y2="6"></line>
-                              <line x1="8" y1="12" x2="21" y2="12"></line>
-                              <line x1="8" y1="18" x2="21" y2="18"></line>
-                              <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                              <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                              <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                          </svg>
-                          <span>Bảng danh sách</span>
-                      </button>
-                      <button
-                          type="button"
-                          onClick={() => setViewMode('timeline')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                              viewMode === 'timeline'
-                                  ? 'bg-[--color-accent-600] text-white shadow-md'
-                                  : 'text-[--color-text-secondary] hover:text-[--color-text-primary]'
-                          }`}
-                      >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
-                              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                              <line x1="16" y1="2" x2="16" y2="6"></line>
-                              <line x1="8" y1="2" x2="8" y2="6"></line>
-                              <line x1="3" y1="10" x2="21" y2="10"></line>
-                          </svg>
-                          <span>Dòng thời gian (Gantt)</span>
-                      </button>
+          <div className="p-6 border-b border-[--color-border-secondary] flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                      <h2 className="text-xl font-bold text-[--color-text-primary]">{t('projectList') || 'Danh sách dự án'}</h2>
+                      
+                      {/* View Mode Segmented Switch - Custom Refined Design */}
+                      <div className="bg-[--color-surface-tertiary] p-1 rounded-xl flex items-center gap-1 border border-[--color-border-secondary] w-max select-none shadow-inner">
+                          <button
+                              type="button"
+                              onClick={() => setViewMode('list')}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                                  viewMode === 'list'
+                                      ? 'bg-[--color-accent-600] text-white shadow-md'
+                                      : 'text-[--color-text-secondary] hover:text-[--color-text-primary]'
+                              }`}
+                          >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                                  <line x1="8" y1="6" x2="21" y2="6"></line>
+                                  <line x1="8" y1="12" x2="21" y2="12"></line>
+                                  <line x1="8" y1="18" x2="21" y2="18"></line>
+                                  <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                                  <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                                  <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                              </svg>
+                              <span>Bảng danh sách</span>
+                          </button>
+                          <button
+                              type="button"
+                              onClick={() => setViewMode('timeline')}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                                  viewMode === 'timeline'
+                                      ? 'bg-[--color-accent-600] text-white shadow-md'
+                                      : 'text-[--color-text-secondary] hover:text-[--color-text-primary]'
+                              }`}
+                          >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                  <line x1="16" y1="2" x2="16" y2="6"></line>
+                                  <line x1="8" y1="2" x2="8" y2="6"></line>
+                                  <line x1="3" y1="10" x2="21" y2="10"></line>
+                              </svg>
+                              <span>Dòng thời gian (Gantt)</span>
+                          </button>
+                      </div>
                   </div>
+                  <button 
+                    onClick={() => openAddModal()}
+                    className="bg-[--color-accent-600] text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-[--color-accent-500/20] flex items-center justify-center gap-2 hover:bg-[--color-accent-700] transition-all active:scale-[0.98] w-full sm:w-auto"
+                  >
+                    <PlusIcon className="w-5 h-5" /> 
+                    <span className="whitespace-nowrap">{t('newProject') || 'Tạo dự án mới'}</span>
+                  </button>
               </div>
-              <button 
-                onClick={() => openAddModal()}
-                className="bg-[--color-accent-600] text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-[--color-accent-500/20] flex items-center justify-center gap-2 hover:bg-[--color-accent-700] transition-all active:scale-[0.98] w-full sm:w-auto"
-              >
-                <PlusIcon className="w-5 h-5" /> 
-                <span className="whitespace-nowrap">{t('newProject') || 'Tạo dự án mới'}</span>
-              </button>
+
+              {/* Search input field above project list */}
+              <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <SearchIcon className="h-5 w-5 text-[--color-text-subtle]" />
+                  </div>
+                  <input
+                      type="text"
+                      className="block w-full pl-10 pr-3 py-2 border border-[--color-border-secondary] rounded-xl leading-5 bg-[--color-surface-tertiary]/30 text-[--color-text-primary] placeholder-[--color-text-subtle] focus:outline-none focus:ring-1 focus:ring-[--color-accent-500] focus:border-[--color-accent-500] sm:text-sm transition-all shadow-inner"
+                      placeholder={t('searchProjects') || "Tìm kiếm dự án theo tên hoặc mô tả..."}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+              </div>
           </div>
 
-          {/* Department filter select and Export PDF/CSV Button toolbar */}
-          <div className="px-6 py-4 border-b border-[--color-border-secondary] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-[--color-surface-tertiary]/40 shrink-0">
-              <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-[--color-text-secondary] whitespace-nowrap">Lọc theo Phòng ban:</span>
-                  <select
-                      value={selectedDepartment}
-                      onChange={(e) => setSelectedDepartment(e.target.value)}
-                      className="bg-[--color-surface-primary] border border-[--color-border-secondary] text-[--color-text-primary] text-sm rounded-lg py-2 px-3 focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none cursor-pointer"
-                  >
-                      <option value="all">Tất cả phòng ban</option>
-                      <option value="IT">Phòng CNTT (IT)</option>
-                      <option value="Marketing">Phòng Marketing</option>
-                      <option value="HR">Phòng Nhân sự (HR)</option>
-                      <option value="None">Chưa phân loại</option>
-                  </select>
+          {/* Filters and Export Button toolbar */}
+          <div className="px-6 py-4 border-b border-[--color-border-secondary] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-[--color-surface-tertiary]/40 shrink-0">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                  <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-[--color-text-secondary] whitespace-nowrap">Phòng ban:</span>
+                      <select
+                          value={selectedDepartment}
+                          onChange={(e) => setSelectedDepartment(e.target.value)}
+                          className="bg-[--color-surface-primary] border border-[--color-border-secondary] text-[--color-text-primary] text-sm rounded-lg py-2 px-3 focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none cursor-pointer"
+                      >
+                          <option value="all">{t('allDepartments') || 'Tất cả'}</option>
+                          <option value="IT">IT</option>
+                          <option value="Marketing">Marketing</option>
+                          <option value="HR">HR</option>
+                          <option value="None">Chưa phân loại</option>
+                      </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-[--color-text-secondary] whitespace-nowrap">Thời hạn:</span>
+                      <select
+                          value={dueDateFilter}
+                          onChange={(e) => setDueDateFilter(e.target.value as 'all' | 'overdue' | 'this_week' | 'this_month')}
+                          className="bg-[--color-surface-primary] border border-[--color-border-secondary] text-[--color-text-primary] text-sm rounded-lg py-2 px-3 focus:ring-2 focus:ring-[--color-accent-500] focus:outline-none cursor-pointer"
+                      >
+                          <option value="all">{t('all') || 'Tất cả'}</option>
+                          <option value="overdue">{t('overdue') || 'Quá hạn'}</option>
+                          <option value="this_week">{t('thisWeek') || 'Tuần này'}</option>
+                          <option value="this_month">{t('thisMonth') || 'Tháng này'}</option>
+                      </select>
+                  </div>
               </div>
               
-              <button
-                  onClick={handleExportCSV}
-                  className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all active:scale-[0.98] text-sm w-full sm:w-auto"
-              >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  <span className="whitespace-nowrap">Xuất báo cáo (CSV)</span>
-              </button>
+              <div className="flex items-center gap-2">
+                  <button
+                      onClick={handleExportPDF}
+                      className="bg-red-600 text-white px-4 py-2.5 rounded-xl font-semibold shadow-md shadow-red-500/20 flex items-center justify-center gap-2 hover:bg-red-700 transition-all active:scale-[0.98] text-sm flex-1 sm:flex-none"
+                  >
+                      <FilePdfIcon className="w-4.5 h-4.5" />
+                      <span className="whitespace-nowrap">{t('exportPDF') || 'Xuất PDF'}</span>
+                  </button>
+                  <button
+                      onClick={handleExportCSV}
+                      className="bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all active:scale-[0.98] text-sm flex-1 sm:flex-none"
+                  >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4.5 h-4.5">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7 10 12 15 17 10" />
+                          <line x1="12" y1="15" x2="12" y2="3" />
+                      </svg>
+                      <span className="whitespace-nowrap">{t('exportCSV') || 'Xuất CSV'}</span>
+                  </button>
+              </div>
           </div>
 
           {viewMode === 'list' ? (
@@ -446,10 +627,10 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user, onN
               <table className="w-full text-left border-collapse">
                   <thead>
                       <tr className="bg-[--color-surface-tertiary] border-b border-[--color-border-secondary]">
-                      <th className="p-4 font-semibold text-sm text-[--color-text-secondary]">Tên dự án</th>
-                      <th className="p-4 font-semibold text-sm text-[--color-text-secondary]">Mô tả</th>
-                      <th className="p-4 font-semibold text-sm text-[--color-text-secondary]">Trạng thái</th>
-                      <th className="p-4 font-semibold text-sm text-[--color-text-secondary]">Hạn chót</th>
+                      <th className="p-4 font-semibold text-sm text-[--color-text-secondary]">{t('projectName')}</th>
+                      <th className="p-4 font-semibold text-sm text-[--color-text-secondary]">{t('projectStatus')} / {t('progress')}</th>
+                      <th className="p-4 font-semibold text-sm text-[--color-text-secondary]">{t('projectDueDate')}</th>
+                      <th className="p-4 font-semibold text-sm text-[--color-text-secondary]">Tasklists</th>
                       <th className="p-4 font-semibold text-sm text-[--color-text-secondary] text-right">Thao tác</th>
                       </tr>
                   </thead>
@@ -458,25 +639,18 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user, onN
                           <tr>
                               <td colSpan={5} className="p-8 text-center text-[--color-text-subtle]">Đang tải dữ liệu...</td>
                           </tr>
-                      ) : projects.length === 0 ? (
-                          <tr>
-                              <td colSpan={5} className="p-8 text-center text-[--color-text-subtle]">Chưa có dự án nào. Hãy tạo dự án mới!</td>
-                          </tr>
                       ) : (() => {
-                          // Hierarchy logic filtering with selected department
-                          const parentProjects = projects.filter(p => {
-                              if (p.parentProjectId) return false;
-                              if (selectedDepartment === 'all') return true;
-                              const matchesSelf = selectedDepartment === 'None' ? !p.department : p.department === selectedDepartment;
-                              const hasMatchingChild = projects.some(sub => sub.parentProjectId === p.id && (selectedDepartment === 'None' ? !sub.department : sub.department === selectedDepartment));
-                              return matchesSelf || hasMatchingChild;
-                          });
-                          const subProjects = projects.filter(p => {
-                              if (!p.parentProjectId) return false;
-                              if (selectedDepartment === 'all') return true;
-                              const matchesSelf = selectedDepartment === 'None' ? !p.department : p.department === selectedDepartment;
-                              return matchesSelf;
-                          });
+                          const filteredList = getFilteredProjects();
+                          if (filteredList.length === 0) {
+                              return (
+                                  <tr>
+                                      <td colSpan={5} className="p-8 text-center text-[--color-text-subtle]">Không tìm thấy dự án nào.</td>
+                                  </tr>
+                              );
+                          }
+
+                          const parentProjects = filteredList.filter(p => !p.parentProjectId);
+                          const subProjects = projects.filter(p => p.parentProjectId);
 
                           return parentProjects.map((project) => (
                               <React.Fragment key={project.id}>
@@ -492,9 +666,39 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user, onN
                                               </span>
                                           )}
                                       </td>
-                                      <td className="p-4 text-sm text-[--color-text-secondary] max-w-[300px] truncate">{project.description}</td>
-                                      <td className="p-4">{getStatusBadge(project.status)}</td>
-                                      <td className="p-4 text-sm text-[--color-text-secondary]">{project.dueDate ? new Date(project.dueDate).toLocaleDateString('vi-VN') : 'Không có'}</td>
+                                      <td className="p-4">
+                                          <div className="mb-2">{getStatusBadge(project.status)}</div>
+                                          {project.status === 'active' && (
+                                              <div className="w-full max-w-[120px]">
+                                                  <div className="flex justify-between items-center mb-1 text-[10px] font-bold text-[--color-text-secondary]">
+                                                      <span>Tiến độ</span>
+                                                      <span>{calculateProjectProgress(project)}%</span>
+                                                  </div>
+                                                  <div className="w-full h-1.5 bg-[--color-border-secondary]/40 rounded-full overflow-hidden">
+                                                      <div 
+                                                          className="h-full bg-blue-500 rounded-full transition-all duration-500" 
+                                                          style={{ width: `${calculateProjectProgress(project)}%` }}
+                                                      ></div>
+                                                  </div>
+                                              </div>
+                                          )}
+                                      </td>
+                                      <td className="p-4">
+                                           <div className="flex items-center gap-2">
+                                               <span className="text-sm text-[--color-text-secondary]">
+                                                   {project.dueDate ? new Date(project.dueDate).toLocaleDateString('vi-VN') : 'Không có'}
+                                               </span>
+                                               {project.status === 'active' && project.dueDate && project.dueDate < new Date().toISOString().split('T')[0] && (
+                                                   <AlertCircleIcon className="w-4 h-4 text-red-500 animate-pulse" title="Đã quá hạn!" />
+                                               )}
+                                           </div>
+                                      </td>
+                                      <td className="p-4 text-sm text-[--color-text-secondary]">
+                                           <span className="inline-flex items-center gap-1 bg-[--color-surface-tertiary] px-2 py-1 rounded-md border border-[--color-border-secondary]">
+                                               <ChecklistIcon className="w-3.5 h-3.5" />
+                                               {project.taskListIds?.length || (project.taskListId ? 1 : 0)}
+                                           </span>
+                                      </td>
                                       <td className="p-4 text-right whitespace-nowrap">
                                           {onNavigateToTasks && (
                                               <>
@@ -568,9 +772,35 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user, onN
                                                   </span>
                                               )}
                                           </td>
-                                          <td className="p-4 text-xs text-[--color-text-secondary] max-w-[300px] truncate">{sub.description}</td>
-                                          <td className="p-4">{getStatusBadge(sub.status)}</td>
-                                          <td className="p-4 text-xs text-[--color-text-secondary]">{sub.dueDate ? new Date(sub.dueDate).toLocaleDateString('vi-VN') : 'Không có'}</td>
+                                          <td className="p-4">
+                                               <div className="mb-2">{getStatusBadge(sub.status)}</div>
+                                               {sub.status === 'active' && (
+                                                   <div className="w-full max-w-[100px]">
+                                                       <div className="w-full h-1 bg-[--color-border-secondary]/40 rounded-full overflow-hidden">
+                                                           <div 
+                                                               className="h-full bg-blue-500 rounded-full transition-all duration-500" 
+                                                               style={{ width: `${calculateProjectProgress(sub)}%` }}
+                                                           ></div>
+                                                       </div>
+                                                   </div>
+                                               )}
+                                          </td>
+                                          <td className="p-4">
+                                               <div className="flex items-center gap-2">
+                                                   <span className="text-xs text-[--color-text-secondary]">
+                                                       {sub.dueDate ? new Date(sub.dueDate).toLocaleDateString('vi-VN') : 'Không có'}
+                                                   </span>
+                                                   {sub.status === 'active' && sub.dueDate && sub.dueDate < new Date().toISOString().split('T')[0] && (
+                                                       <AlertCircleIcon className="w-3.5 h-3.5 text-red-500 animate-pulse" title="Đã quá hạn!" />
+                                                   )}
+                                               </div>
+                                          </td>
+                                          <td className="p-4 text-xs text-[--color-text-secondary]">
+                                               <span className="inline-flex items-center gap-1 bg-[--color-surface-tertiary]/50 px-1.5 py-0.5 rounded border border-[--color-border-secondary]/50">
+                                                   <ChecklistIcon className="w-3 h-3" />
+                                                   {sub.taskListIds?.length || (sub.taskListId ? 1 : 0)}
+                                               </span>
+                                          </td>
                                           <td className="p-4 text-right whitespace-nowrap">
                                               {onNavigateToTasks && (
                                                   <>
@@ -675,24 +905,24 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user, onN
                               return (
                                 <div className="bg-slate-900/95 backdrop-blur-md text-white p-3.5 rounded-xl border border-slate-700 shadow-xl max-w-sm">
                                   <p className="font-bold text-sm mb-1.5 text-white">{data.name}</p>
-                                  <div className="space-y-1.5 text-xs text-slate-300">
+                                  <div className="space-y-1.5 text-xs text-slate-200">
                                     <p className="flex items-center gap-2">
-                                      <span className="font-semibold text-slate-400">Phòng ban:</span>{' '}
-                                      <span className="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded text-[10px] uppercase font-bold">
+                                      <span className="font-semibold text-slate-300">Phòng ban:</span>{' '}
+                                      <span className="bg-slate-700 text-white px-1.5 py-0.5 rounded text-[10px] uppercase font-bold">
                                         {data.department}
                                       </span>
                                     </p>
                                     <p className="flex items-center gap-2">
-                                      <span className="font-semibold text-slate-400">Trạng thái:</span>{' '}
+                                      <span className="font-semibold text-slate-300">Trạng thái:</span>{' '}
                                       <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                                        data.status === 'active' ? 'bg-blue-500/20 text-blue-300 animate-pulse' :
-                                        data.status === 'completed' ? 'bg-green-500/20 text-green-300' :
-                                        'bg-yellow-500/20 text-yellow-300'
+                                        data.status === 'active' ? 'bg-blue-500/30 text-blue-200 animate-pulse' :
+                                        data.status === 'completed' ? 'bg-green-500/30 text-green-200' :
+                                        'bg-yellow-500/30 text-yellow-200'
                                       }`}>
                                         {data.statusLabel}
                                       </span>
                                     </p>
-                                    <p><span className="font-semibold text-slate-400">Hạn chót:</span> <span className="font-semibold text-white">{data.dueDateStr}</span></p>
+                                    <p><span className="font-semibold text-slate-300">Hạn chót:</span> <span className="font-semibold text-white">{data.dueDateStr}</span></p>
                                   </div>
                                 </div>
                               );

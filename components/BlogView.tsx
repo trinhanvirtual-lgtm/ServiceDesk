@@ -6,80 +6,23 @@ import { useLanguage } from './LanguageContext';
 import { GoogleGenAI } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
 
+import { db } from '../firebase';
+import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
+import { TrashIcon } from './icons';
+
 interface Article {
   id: string;
   title: string;
   author: string;
+  authorId?: string;
   tags: string[];
   previewImage: string;
   source: 'Internal' | 'Blogger';
   isPinned: boolean;
   date: string;
   status: 'Draft' | 'Published' | 'Archived';
+  createdAt?: number;
 }
-
-export const mockArticles: Article[] = [
-  {
-    id: '1',
-    title: 'J MONRO: Bí quyết sống tối giản từ bậc thầy cổ nhân',
-    author: 'Hung Thai',
-    tags: ['Cổ Nhân Chỉ Ngôn', 'Triết học', 'Cuộc sống'],
-    previewImage: 'https://images.unsplash.com/photo-1531932479224-a74421915953?q=80&w=800',
-    source: 'Internal',
-    isPinned: true,
-    date: 'July 28, 2024',
-    status: 'Published'
-  },
-  {
-    id: '2',
-    title: 'Thiền Đạo: Tìm lại sự bình yên trong công việc',
-    author: 'Alice Johnson',
-    tags: ['Thiền Đạo', 'Work-Life Balance'],
-    previewImage: 'https://images.unsplash.com/photo-1506126613408-4e2524b3795b?q=80&w=800',
-    source: 'Blogger',
-    isPinned: false,
-    date: 'July 27, 2024',
-    status: 'Published'
-  },
-  {
-    id: '3',
-    title: '5 mẹo quản lý công việc hiệu quả với phương pháp Pomodoro',
-    author: 'Bob Williams',
-    tags: ['Công việc', 'Productivity', 'Mẹo'],
-    previewImage: 'https://images.unsplash.com/photo-1590132142713-5de5f448b138?q=80&w=800',
-    source: 'Internal',
-    isPinned: false,
-    date: 'July 26, 2024',
-    status: 'Published'
-  },
-  {
-    id: '4',
-    title: 'Review series "The Crown" trên Netflix: Lịch sử có thực sự như phim?',
-    author: 'Charlie Brown',
-    tags: ['Netflix', 'Review', 'Phim ảnh', 'Giải trí'],
-    previewImage: 'https://images.unsplash.com/photo-1574375927938-d5a98e8ffe85?q=80&w=800',
-    source: 'Blogger',
-    isPinned: false,
-    date: 'July 25, 2024',
-    status: 'Published'
-  },
-  {
-    id: '5',
-    title: 'Một ngày trong cuộc đời của Lão Tử',
-    author: 'Hung Thai',
-    tags: ['Cổ Nhân Chỉ Ngôn', 'Triết học'],
-    previewImage: 'https://images.unsplash.com/photo-1544588434-2d6a504d496a?q=80&w=800',
-    source: 'Internal',
-    isPinned: false,
-    date: 'July 24, 2024',
-    status: 'Draft'
-  },
-    { id: '6', title: 'Hướng dẫn cho người mới bắt đầu về đầu tư chứng khoán', author: 'Dana Scully', tags: ['Tài chính', 'Đầu tư'], previewImage: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=800', source: 'Internal', isPinned: false, date: 'July 23, 2024', status: 'Published' },
-    { id: '7', title: 'Top 10 công thức nấu ăn lành mạnh cho bữa tối', author: 'Fox Mulder', tags: ['Ẩm thực', 'Sức khỏe'], previewImage: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?q=80&w=800', source: 'Blogger', isPinned: false, date: 'July 22, 2024', status: 'Published' },
-    { id: '8', title: 'Làm thế nào để xây dựng một khu vườn nhỏ trên ban công', author: 'Walter Skinner', tags: ['Làm vườn', 'DIY', 'Cuộc sống'], previewImage: 'https://images.unsplash.com/photo-1585320811903-a22a5ebb2444?q=80&w=800', source: 'Internal', isPinned: false, date: 'July 21, 2024', status: 'Published' },
-    { id: '9', title: 'Tương lai của làm việc từ xa: Xu hướng và Thách thức', author: 'Deep Throat', tags: ['Công việc', 'Tương lai', 'Xu hướng'], previewImage: 'https://images.unsplash.com/photo-1589987607627-616d1124c235?q=80&w=800', source: 'Blogger', isPinned: false, date: 'July 20, 2024', status: 'Archived' },
-    { id: '10', title: 'Phân tích triết học trong phim "Blade Runner"', author: 'Hung Thai', tags: ['Triết học', 'Phim ảnh', 'Review'], previewImage: 'https://images.unsplash.com/photo-1534723452862-4c874018d66d?q=80&w=800', source: 'Internal', isPinned: false, date: 'July 19, 2024', status: 'Published' },
-];
 
 interface ArticleCardProps {
     article: Article;
@@ -107,7 +50,7 @@ const highlightText = (text: string, highlight: string) => {
     );
 };
 
-const ArticleCard: React.FC<ArticleCardProps & { searchTerm?: string }> = ({ article, onTagClick, onSchedule, onView, searchTerm = '', onSummarize, onShare }) => {
+const ArticleCard: React.FC<ArticleCardProps & { searchTerm?: string; onDelete?: (id: string) => void; canDelete?: boolean }> = ({ article, onTagClick, onSchedule, onView, searchTerm = '', onSummarize, onShare, onDelete, canDelete }) => {
     const { t } = useLanguage();
     const [tagsExpanded, setTagsExpanded] = useState(false);
     const TAG_LIMIT = 2;
@@ -128,6 +71,15 @@ const ArticleCard: React.FC<ArticleCardProps & { searchTerm?: string }> = ({ art
                 </div>
             )}
             <div className={`absolute top-2 ${article.source === 'Blogger' ? 'right-10' : 'right-2'} z-10 flex gap-2`}>
+                {canDelete && (
+                     <button 
+                        onClick={(e) => { e.stopPropagation(); onDelete?.(article.id); }}
+                        className="bg-white/90 hover:bg-white text-red-600 p-1.5 rounded-full shadow-md transition-all hover:scale-110"
+                        title="Xóa bài viết"
+                    >
+                        <TrashIcon className="w-4 h-4" />
+                    </button>
+                )}
                 <button 
                     onClick={(e) => { e.stopPropagation(); onSummarize(article); }}
                     className="bg-white/90 hover:bg-white text-purple-600 p-1.5 rounded-full shadow-md transition-all hover:scale-110"
@@ -187,7 +139,7 @@ const ArticleCard: React.FC<ArticleCardProps & { searchTerm?: string }> = ({ art
     );
 };
 
-const PinnedPost: React.FC<{ article: Article, onTagClick: (tag: string) => void, onSchedule: (title: string) => void, onView: () => void; searchTerm?: string, onSummarize: (article: Article) => void, onShare: (article: Article) => void }> = ({ article, onTagClick, onSchedule, onView, searchTerm = '', onSummarize, onShare }) => {
+const PinnedPost: React.FC<{ article: Article, onTagClick: (tag: string) => void, onSchedule: (title: string) => void, onView: () => void; searchTerm?: string, onSummarize: (article: Article) => void, onShare: (article: Article) => void, onDelete?: (id: string) => void; canDelete?: boolean }> = ({ article, onTagClick, onSchedule, onView, searchTerm = '', onSummarize, onShare, onDelete, canDelete }) => {
     const { t } = useLanguage();
     const [tagsExpanded, setTagsExpanded] = useState(false);
     const TAG_LIMIT = 2;
@@ -198,6 +150,15 @@ const PinnedPost: React.FC<{ article: Article, onTagClick: (tag: string) => void
     return (
         <div onClick={onView} className="relative bg-white/70 rounded-xl shadow-lg overflow-hidden group flex flex-col md:flex-row cursor-pointer">
             <div className="absolute top-4 right-4 z-10 flex gap-2 items-center">
+                {canDelete && (
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onDelete?.(article.id); }}
+                        className="bg-white/90 hover:bg-white text-red-600 p-2 rounded-full shadow-md transition-all hover:scale-110"
+                        title="Xóa bài viết"
+                    >
+                        <TrashIcon className="w-5 h-5" />
+                    </button>
+                )}
                 <button 
                     onClick={(e) => { e.stopPropagation(); onSummarize(article); }}
                     className="bg-white/90 hover:bg-white text-purple-600 p-2 rounded-full shadow-md transition-all hover:scale-110"
@@ -275,39 +236,47 @@ interface BlogViewProps {
   onItemViewed: (item: RecentItem) => void;
 }
 
-const BlogView: React.FC<BlogViewProps> = ({ onNavigate, onSchedule, onItemViewed }) => {
+const BlogView: React.FC<BlogViewProps> = ({ user, onNavigate, onSchedule, onItemViewed }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const { t } = useLanguage();
-    const [toastMessage, setToastMessage] = useState('');
     const [visibleItems, setVisibleItems] = useState(8);
+    const [articles, setArticles] = useState<Article[]>([]);
 
-    const showToast = (msg: string) => {
-        setToastMessage(msg);
-        setTimeout(() => {
-            setToastMessage('');
-        }, 2500);
-    };
-
-    const handleShareArticle = (article: Article) => {
-        const shareUrl = `${window.location.protocol}//${window.location.host}/?shareType=blog&shareId=${article.id}`;
-        navigator.clipboard.writeText(shareUrl).then(() => {
-            showToast(`Đã sao chép liên kết bài viết: "${article.title}"!`);
-        }).catch(() => {
-            const textarea = document.createElement('textarea');
-            textarea.value = shareUrl;
-            document.body.appendChild(textarea);
-            textarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textarea);
-            showToast(`Đã sao chép liên kết bài viết: "${article.title}"!`);
+    useEffect(() => {
+        const q = query(collection(db, 'blogArticles'), orderBy('createdAt', 'desc'));
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const articlesData = snapshot.docs.map(doc => {
+                const data = doc.data();
+                return {
+                    id: doc.id,
+                    title: data.title,
+                    author: data.authorName,
+                    authorId: data.authorId,
+                    tags: data.tags || [],
+                    previewImage: data.previewImage || '',
+                    source: 'Internal',
+                    isPinned: data.isPinned || false,
+                    date: new Date(data.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+                    status: data.status,
+                    createdAt: data.createdAt
+                } as Article;
+            });
+            setArticles(articlesData);
         });
+
+        return () => unsubscribe();
+    }, []);
+
+    const handleDeleteArticle = async (id: string) => {
+        if (!window.confirm("Bạn có chắc chắn muốn xóa bài viết này?")) return;
+        try {
+            await deleteDoc(doc(db, 'blogArticles', id));
+            showToast("Đã xóa bài viết thành công!");
+        } catch (error) {
+            console.error("Delete Error:", error);
+            alert("Không thể xóa bài viết. Vui lòng thử lại.");
+        }
     };
-    const [articles, setArticles] = useState<Article[]>(() => {
-        const savedArticles = localStorage.getItem('blog_articles');
-        if (savedArticles) return JSON.parse(savedArticles);
-        localStorage.setItem('blog_articles', JSON.stringify(mockArticles));
-        return mockArticles;
-    });
     const [selectedTag, setSelectedTag] = useState<string | null>(null);
     const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
 
@@ -438,7 +407,7 @@ const BlogView: React.FC<BlogViewProps> = ({ onNavigate, onSchedule, onItemViewe
             icon: <BookOpenIcon />,
             itemId: article.id
         });
-        // The app does not have a single article view, so nothing else to do.
+        onNavigate('blog-article', article.id);
     };
 
     return (
@@ -446,7 +415,7 @@ const BlogView: React.FC<BlogViewProps> = ({ onNavigate, onSchedule, onItemViewe
             <div className="shrink-0"> <BlogBanner /> </div>
             <div className="flex-1 overflow-y-auto no-scrollbar" onScroll={handleScroll}>
                 {/* Search and Filter */}
-                <div className="flex flex-col md:flex-row items-center gap-4 mb-8 max-w-4xl mx-auto sticky top-0 z-20 bg-slate-50/80 backdrop-blur-md py-4 px-1 rounded-xl">
+                <div className="flex flex-col md:flex-row items-center gap-4 mb-8 w-full sticky top-0 z-20">
                     <div className="relative flex-1 w-full">
                         <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input 
@@ -454,7 +423,7 @@ const BlogView: React.FC<BlogViewProps> = ({ onNavigate, onSchedule, onItemViewe
                             value={searchTerm} 
                             onChange={(e) => setSearchTerm(e.target.value)} 
                             placeholder={t('searchPlaceholderBlog')} 
-                            className="w-full bg-white border border-slate-300 shadow-sm focus:border-pink-500 focus:ring-1 focus:ring-pink-500 focus:outline-none placeholder-slate-400 text-slate-800 rounded-full py-3.5 pl-12 pr-14 transition-all" 
+                            className="w-full bg-white border-none shadow-sm focus:ring-2 focus:ring-pink-500/20 focus:outline-none placeholder-slate-400 text-slate-800 rounded-full py-4 pl-12 pr-14 transition-all" 
                         />
                         <button 
                             onClick={() => setAssistantOpen(!isAssistantOpen)}
@@ -522,7 +491,7 @@ const BlogView: React.FC<BlogViewProps> = ({ onNavigate, onSchedule, onItemViewe
                     )}
                 </AnimatePresence>
 
-                {pinnedPost && <div className="mb-8"><PinnedPost article={pinnedPost} onTagClick={handleTagClick} onSchedule={onSchedule} onView={() => handleArticleView(pinnedPost)} searchTerm={searchTerm} onSummarize={handleSummarize} onShare={handleShareArticle} /></div>}
+                {pinnedPost && <div className="mb-8"><PinnedPost article={pinnedPost} onTagClick={handleTagClick} onSchedule={onSchedule} onView={() => handleArticleView(pinnedPost)} searchTerm={searchTerm} onSummarize={handleSummarize} onShare={handleShareArticle} canDelete={user.role === 'superadmin' || pinnedPost.authorId === user.id} onDelete={handleDeleteArticle} /></div>}
 
                 <div>
                     <div className="flex justify-between items-center mb-4">
@@ -545,7 +514,7 @@ const BlogView: React.FC<BlogViewProps> = ({ onNavigate, onSchedule, onItemViewe
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {paginatedPosts.map(article => ( <ArticleCard key={article.id} article={article} onTagClick={handleTagClick} onSchedule={onSchedule} onView={() => handleArticleView(article)} searchTerm={searchTerm} onSummarize={handleSummarize} onShare={handleShareArticle} /> ))}
+                            {paginatedPosts.map(article => ( <ArticleCard key={article.id} article={article} onTagClick={handleTagClick} onSchedule={onSchedule} onView={() => handleArticleView(article)} searchTerm={searchTerm} onSummarize={handleSummarize} onShare={handleShareArticle} canDelete={user.role === 'superadmin' || article.authorId === user.id} onDelete={handleDeleteArticle} /> ))}
                         </div>
                     )}
 

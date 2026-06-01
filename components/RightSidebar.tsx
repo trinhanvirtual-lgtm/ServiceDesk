@@ -58,7 +58,7 @@ const NotificationItemCard: React.FC<{ item: AppNotification, onClick: () => voi
     return (
         <div 
             onClick={onClick}
-            className={`flex items-start gap-3 p-3 rounded-lg hover:bg-[--color-surface-secondary] transition-colors cursor-pointer ${item.read ? 'bg-[--color-surface-primary] opacity-70' : 'bg-[--color-surface-secondary] border-l-2 border-[--color-accent-500]'}`}
+            className={`flex items-start gap-3 p-[5px] rounded-lg hover:bg-[--color-surface-secondary] transition-colors cursor-pointer ${item.read ? 'bg-[--color-surface-primary] opacity-70' : 'bg-[--color-surface-secondary] border-l-2 border-[--color-accent-500]'}`}
         >
             <div className="relative shrink-0 mt-0.5">
                 {renderNotificationIcon(item, allUsers)}
@@ -91,7 +91,7 @@ const RightSidebar: React.FC<RightSidebarProps> = (props) => {
   const { t } = useLanguage();
   return (
     <div className={`fixed inset-y-0 right-0 z-40 md:relative md:z-auto shrink-0 transition-all duration-300 ease-in-out md:transform-none ${isMobileOpen ? 'translate-x-0' : 'translate-x-full'} ${isCollapsed ? 'md:w-0' : 'md:w-80'}`}>
-      <aside className={`relative flex flex-col bg-transparent backdrop-blur-lg h-full transition-all duration-300 ease-in-out w-72 md:w-full ${isCollapsed ? 'p-0 border-l-0 overflow-hidden' : 'p-4 border-l border-[--color-border-secondary]'}`}>
+      <aside className={`relative flex flex-col bg-transparent backdrop-blur-lg h-full transition-all duration-300 ease-in-out w-72 md:w-full ${isCollapsed ? 'p-0 border-l-0 overflow-hidden' : 'p-[5px] border-l border-[--color-border-secondary]'}`}>
         <div className="md:hidden flex items-center justify-end mb-4">
             <button onClick={onClose} className="p-2 rounded-full hover:bg-black/10">
                 <XIcon className="w-6 h-6 text-[--color-text-secondary]" />
@@ -108,7 +108,7 @@ const RightSidebar: React.FC<RightSidebarProps> = (props) => {
                         </button>
                     )}
                 </div>
-                <div className="flex-1 flex flex-col gap-2 overflow-y-auto -mr-4 pr-4 no-scrollbar">
+                <div className="flex-1 flex flex-col gap-[5px] overflow-y-auto -mr-4 pr-4 no-scrollbar">
                     {notifications.length === 0 ? (
                         <p className="text-sm text-[--color-text-subtle] text-center mt-6">Không có thông báo nào</p>
                     ) : notifications.map(item => (

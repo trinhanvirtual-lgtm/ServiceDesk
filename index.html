@@ -3,16 +3,45 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Glassmorphism UI Dashboard</title>
+    <title>Service Desk Manager</title>
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
       /* Using a more complex gradient for the background */
+      /* Ensure base font size uniformity */
+      html {
+        font-size: 16px;
+      }
       body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
         background-color: #f0f2f5; /* Fallback */
         background-image: var(--color-background-body);
         transition: background-image 0.3s ease;
         border-radius: 0 10px 10px 0;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      input, button, select, textarea {
+        font-family: inherit;
+        font-size: inherit;
+      }
+
+      /* Global icon centering helper */
+      .flex-center-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      /* Synchronize common text sizes if they drift */
+      h1, h2, h3, h4, .h1, .h2, .h3, .h4 {
+        line-height: 1.25;
+        letter-spacing: -0.02em;
       }
       /* Custom utility to hide scrollbars */
       .no-scrollbar::-webkit-scrollbar {

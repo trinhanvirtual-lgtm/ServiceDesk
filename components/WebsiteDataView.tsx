@@ -2,9 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../App';
 import { useLanguage } from './LanguageContext';
 import { SettingsIcon, FileTextIcon, FolderIcon, FileEditIcon, TrashIcon, PlusIcon, XIcon, CheckCircleIcon, SyncIcon, HomeIcon, LayoutIcon, BriefcaseIcon, BookOpenIcon, ChevronRightIcon, ImageIcon, UsersIcon, MailIcon, LockIcon } from './icons';
-import { mockArticles } from './BlogView';
 import { db, auth } from '../firebase';
-import { collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import UserManagementView from './UserManagementView';
 import WebsiteBanner from './WebsiteBanner';
 
@@ -75,6 +74,7 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
   const [activeTab, setActiveTab] = useState<'home' | 'pages' | 'media' | 'settings' | 'permissions' | 'email-config'>('home');
   const [pages, setPages] = useState<PageData[]>(mockPages);
   const [isLoading, setIsLoading] = useState(true);
+  const [articles, setArticles] = useState<unknown[]>([]);
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -194,6 +194,13 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
       }
     });
 
+    const blogRef = collection(db, 'blogArticles');
+    const q = query(blogRef, orderBy('createdAt', 'desc'), limit(4));
+    const unsubscribeBlog = onSnapshot(q, (snapshot) => {
+        const articlesList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setArticles(articlesList);
+    });
+
     const emailSettingsRef = doc(db, 'settings', 'email');
     const unsubscribeEmail = onSnapshot(emailSettingsRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -215,6 +222,7 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
       unsubscribePages();
       unsubscribeSettings();
       unsubscribeEmail();
+      unsubscribeBlog();
     };
   }, []);
 
@@ -488,7 +496,7 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
           <MailIcon className="w-4 h-4" />
           <span>{t('emailConfig') || 'Cấu hình Email'}</span>
         </button>
-        {user.role === 'superadmin' && (
+        {(user.role === 'superadmin' || user.role === 'admin') && (
           <button
             onClick={() => setActiveTab('permissions')}
             className={`pb-4 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'permissions' ? 'border-[--color-accent-500] text-[--color-accent-600] dark:text-[--color-accent-400]' : 'border-transparent text-[--color-text-secondary] hover:text-[--color-text-primary]'}`}
@@ -564,7 +572,7 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
                 </div>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {mockArticles.slice(0, 4).map((article) => (
+                    {articles.map((article) => (
                         <div key={article.id} className="bg-[--color-surface-secondary] rounded-xl overflow-hidden border border-[--color-border-secondary] group transition-all hover:shadow-md">
                             <div className="aspect-video relative overflow-hidden">
                                 <img src={article.previewImage} alt={article.title} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
@@ -575,7 +583,7 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
                             <div className="p-3 space-y-2">
                                 <h4 className="text-sm font-bold text-[--color-text-primary] line-clamp-2 leading-tight h-10">{article.title}</h4>
                                 <div className="flex items-center justify-between mt-auto">
-                                    <span className="text-[10px] text-[--color-text-secondary]">{article.date}</span>
+                                    <span className="text-[10px] text-[--color-text-secondary]">{new Date(article.createdAt).toLocaleDateString('vi-VN')}</span>
                                     <button className="p-1 hover:bg-[--color-surface-tertiary] rounded-md transition-colors text-[--color-text-secondary]">
                                         <SyncIcon className="w-3.5 h-3.5" />
                                     </button>
@@ -1270,7 +1278,7 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
           </div>
         )}
 
-        {activeTab === 'permissions' && user.role === 'superadmin' && (
+        {activeTab === 'permissions' && (user.role === 'superadmin' || user.role === 'admin') && (
           <div className="animate-fade-in-up">
              <UserManagementView currentUser={user} users={allUsers} onUsersChange={onUsersChange} />
           </div>

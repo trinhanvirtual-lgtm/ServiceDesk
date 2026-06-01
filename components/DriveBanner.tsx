@@ -69,8 +69,8 @@ const DriveBanner: React.FC = () => {
       
             <div className="relative z-10 flex flex-col sm:flex-row justify-between items-center gap-4">
                 <div className="text-center sm:text-left">
-                    <h1 className="text-3xl font-bold">Kho lưu trữ tập trung</h1>
-                    <p className="mt-2 text-sky-100 max-w-lg italic">
+                    <h1 className="text-xl sm:text-2xl font-bold">Kho lưu trữ tập trung</h1>
+                    <p className="mt-2 text-sky-100 max-w-lg italic text-xs">
                         “Mọi tập tin – Một nơi – Mọi lúc – Một kết nối”
                     </p>
                 </div>

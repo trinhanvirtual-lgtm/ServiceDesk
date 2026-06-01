@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HomeIcon, CalendarIcon, StickyNoteIcon, ChecklistIcon, UsersIcon, FolderIcon, BookOpenIcon, RssIcon, GraduationCapIcon, XIcon, ClipboardListIcon, ChevronDownIcon, ChevronUpIcon } from './icons';
+import { HomeIcon, CalendarIcon, StickyNoteIcon, ChecklistIcon, UsersIcon, FolderIcon, BookOpenIcon, RssIcon, GraduationCapIcon, XIcon, ClipboardListIcon, ChevronDownIcon, ChevronUpIcon, SettingsIcon } from './icons';
 import { View, RecentItem, User } from '../App';
 import { useLanguage } from './LanguageContext';
 
@@ -14,9 +14,11 @@ interface NavItemProps {
 }
 
 const NavItem: React.FC<NavItemProps> = ({ icon, label, active = false, isCollapsed, onClick }) => (
-  <button onClick={onClick} className={`flex items-center w-full gap-3 px-4 py-2.5 rounded-lg transition-colors ${active ? 'bg-[--color-surface-tertiary] text-[--color-accent-700] dark:text-[--color-accent-400] font-semibold shadow-sm' : 'text-[--color-text-secondary] hover:bg-[--color-surface-secondary] hover:text-[--color-text-primary]'} ${isCollapsed ? 'justify-center' : ''}`}>
-    {icon}
-    <span className={`whitespace-nowrap font-medium transition-opacity duration-200 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>{label}</span>
+  <button onClick={onClick} className={`flex items-center w-full gap-3 px-4 py-[8px] rounded-lg transition-colors ${active ? 'bg-[--color-surface-tertiary] text-[--color-accent-700] dark:text-[--color-accent-400] font-semibold shadow-sm' : 'text-[--color-text-secondary] hover:bg-[--color-surface-secondary] hover:text-[--color-text-primary]'} ${isCollapsed ? 'justify-center' : ''}`}>
+    <div className="flex-center-icon w-5 h-5 shrink-0">
+      {icon}
+    </div>
+    <span className={`whitespace-nowrap font-medium text-sm transition-opacity duration-200 leading-none ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>{label}</span>
   </button>
 );
 
@@ -34,7 +36,7 @@ interface LeftSidebarProps {
   isAiOpen?: boolean;
 }
 
-const LeftSidebar: React.FC<LeftSidebarProps> = ({ isCollapsed, isMobileOpen, onClose, onMouseEnter, onMouseLeave, activeView, onNavigate, recentlyViewed, onAiClick, isAiOpen }) => {
+const LeftSidebar: React.FC<LeftSidebarProps> = ({ user, isCollapsed, isMobileOpen, onClose, onMouseEnter, onMouseLeave, activeView, onNavigate, recentlyViewed, onAiClick, isAiOpen }) => {
   const { t } = useLanguage();
   const [isRecentExpanded, setIsRecentExpanded] = useState(true);
 
@@ -44,13 +46,13 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ isCollapsed, isMobileOpen, on
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
     >
-      <aside className={`flex flex-col p-4 bg-transparent backdrop-blur-lg border-r border-[--color-border-secondary] h-full transition-all duration-300 ease-in-out w-64 md:${isCollapsed ? 'w-20' : 'w-64'}`}>
+      <aside className={`flex flex-col p-[5px] bg-transparent backdrop-blur-lg border-r border-[--color-border-secondary] h-full transition-all duration-300 ease-in-out w-64 md:${isCollapsed ? 'w-20' : 'w-64'}`}>
         <div className="flex items-center justify-end mb-6 md:hidden">
             <button onClick={onClose} className="p-2 rounded-full hover:bg-black/10">
                 <XIcon className="w-6 h-6 text-[--color-text-secondary]" />
             </button>
         </div>
-        <nav className="flex-grow flex flex-col gap-2 overflow-y-auto no-scrollbar">
+        <nav className="flex-grow flex flex-col justify-center gap-[5px] overflow-y-auto no-scrollbar">
           <NavItem icon={<HomeIcon className="w-5 h-5 shrink-0 text-indigo-500" />} label={t('dashboard')} active={activeView === 'dashboard'} isCollapsed={isCollapsed} onClick={() => onNavigate('dashboard')} />
           <NavItem icon={<RssIcon className="w-5 h-5 shrink-0 text-orange-500" />} label={t('newsfeed')} active={activeView === 'newsfeed'} isCollapsed={isCollapsed} onClick={() => onNavigate('newsfeed')} />
           
@@ -63,6 +65,10 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ isCollapsed, isMobileOpen, on
           <NavItem icon={<BookOpenIcon className="w-5 h-5 shrink-0 text-emerald-500" />} label={t('blog')} active={activeView === 'blog'} isCollapsed={isCollapsed} onClick={() => onNavigate('blog')} />
           <NavItem icon={<GraduationCapIcon className="w-5 h-5 shrink-0 text-violet-500" />} label={t('training')} active={activeView === 'training'} isCollapsed={isCollapsed} onClick={() => onNavigate('training')} />
           <NavItem icon={<ClipboardListIcon className="w-5 h-5 shrink-0 text-rose-500" />} label={t('requestsAndApprovals')} active={activeView === 'requests'} isCollapsed={isCollapsed} onClick={() => onNavigate('requests')} />
+          
+          {(user.role === 'superadmin' || user.role === 'admin') && (
+            <NavItem icon={<SettingsIcon className="w-5 h-5 shrink-0 text-slate-500" />} label="Quản trị website" active={activeView === 'website-data'} isCollapsed={isCollapsed} onClick={() => onNavigate('website-data')} />
+          )}
 
           {recentlyViewed.length > 0 && (
             <div className="shrink-0 mt-2">
@@ -74,7 +80,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ isCollapsed, isMobileOpen, on
                 <span>{t('recentlyViewed') || 'RECENT'}</span>
                 {isRecentExpanded ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
               </button>
-              <div className={`overflow-hidden transition-all duration-300 flex flex-col gap-1 mt-1 ${isRecentExpanded || isCollapsed ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+              <div className={`overflow-hidden transition-all duration-300 flex flex-col gap-[5px] mt-1 ${isRecentExpanded || isCollapsed ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
                 {recentlyViewed.map(item => (
                   <NavItem
                     key={item.id}

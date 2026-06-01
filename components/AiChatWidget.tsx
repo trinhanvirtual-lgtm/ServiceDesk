@@ -7,11 +7,10 @@ import { mockEmails } from './EmailClient';
 import { mockEvents } from './CalendarView';
 import { mockNotes } from './NotesView';
 import { initialContacts } from './ContactsView';
-import { mockPosts } from './NewsfeedView';
 // [FIX] Corrected import from MeetingView. It exports 'initialMeetings', not 'mockMeetings'.
 import { initialMeetings as mockMeetings } from './MeetingView';
 import { db } from '../firebase';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, query, limit } from 'firebase/firestore';
 
 // Interface for chat messages
 interface Message {
@@ -106,9 +105,20 @@ const buildContextPrompt = async (userInput: string): Promise<{ context: string;
     
     // Newsfeed/Blog context
     if (/bảng tin|bài viết|news|blog|post/i.test(userInput)) {
-        const posts = mockPosts.map(p => ({ author: p.author.name, content_preview: p.content.substring(0, 50)+'...', type: p.type }));
-        context += `\n\nNewsfeed Posts Data: ${JSON.stringify(posts)}`;
-        addons.push('newsfeed posts');
+        try {
+            const postsSnapshot = await getDocs(query(collection(db, 'posts'), limit(10)));
+            const posts: unknown[] = [];
+            postsSnapshot.forEach(doc => {
+                const data = doc.data();
+                posts.push({ author: data.author?.name || 'Anonymous', content_preview: data.content?.substring(0, 50) + '...', type: data.type });
+            });
+            if (posts.length > 0) {
+                context += `\n\nNewsfeed Posts Data: ${JSON.stringify(posts)}`;
+                addons.push('newsfeed posts');
+            }
+        } catch (e) {
+            console.error("Error fetching posts for AI context:", e);
+        }
     }
 
     // Notes context

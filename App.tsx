@@ -17,6 +17,7 @@ import NewsfeedView from './components/NewsfeedView';
 import AiChatWidget from './components/AiChatWidget';
 import { LanguageProvider } from './components/LanguageContext';
 import NewBlogPostView from './components/NewBlogPostView';
+import BlogArticleView from './components/BlogArticleView';
 import TaskView from './components/TaskView';
 import TrainingDashboardView from './components/TrainingDashboardView';
 import ClassDetailView from './components/ClassDetailView';
@@ -59,7 +60,7 @@ export interface User {
   googleEmail?: string;
 }
 
-export type View = 'dashboard' | 'drive' | 'meeting' | 'tasklist' | 'contacts' | 'calendar' | 'notes' | 'blog' | 'email' | 'chat' | 'newsfeed' | 'tasks' | 'new-blog-post' | 'training' | 'class-detail' | 'settings' | 'check-in' | 'user-management' | 'requests' | 'website-data' | 'projects' | 'team-chat';
+export type View = 'dashboard' | 'drive' | 'meeting' | 'tasklist' | 'contacts' | 'calendar' | 'notes' | 'blog' | 'blog-article' | 'email' | 'chat' | 'newsfeed' | 'tasks' | 'new-blog-post' | 'training' | 'class-detail' | 'settings' | 'check-in' | 'user-management' | 'requests' | 'website-data' | 'projects' | 'team-chat';
 
 export type ServiceName = 'Drive' | 'Keep' | 'Tasks' | 'Gmail' | 'Calendar' | 'Classroom' | 'Blogger' | 'Chat' | 'Meet';
 
@@ -98,6 +99,7 @@ export interface ActivityItem {
 
 const mockUsers: User[] = [
     { id: 'user-1', name: 'Hung Thai', email: 'hungthai84@gmail.com', role: 'superadmin', avatar: 'https://i.pravatar.cc/150?u=8', phoneNumber: '0901234567' },
+    { id: 'user-admin', name: 'Trí Nhân', email: 'trinhan.virtual@gmail.com', role: 'superadmin', avatar: 'https://i.pravatar.cc/150?u=10' },
     { id: 'user-2', name: 'Lê Thị Bình', email: 'binh.le@company.com', role: 'admin', avatar: 'https://i.pravatar.cc/150?u=2', phoneNumber: '0912345678' },
     { id: 'user-3', name: 'Phạm Minh Cường', email: 'cuong.pham@company.com', role: 'member', avatar: 'https://i.pravatar.cc/150?u=3' },
     { id: 'user-4', name: 'Vũ Thị Dung', email: 'dung.vu@company.com', role: 'member', avatar: 'https://i.pravatar.cc/150?u=4' },
@@ -175,6 +177,7 @@ const AppContent: React.FC = () => {
   const [isRightSidebarCollapsed, setRightSidebarCollapsed] = useState(true);
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [activeClassId, setActiveClassId] = useState<string | null>(null);
+  const [activeArticleId, setActiveArticleId] = useState<string | null>(null);
   const [activeSettingsSection, setActiveSettingsSection] = useState<string | null>(null);
   const [isAiWidgetOpen, setAiWidgetOpen] = useState(false);
   const [activeTaskListId, setActiveTaskListId] = useState<string | undefined>(undefined);
@@ -271,14 +274,14 @@ const AppContent: React.FC = () => {
 
   const [services, setServices] = useState<ServiceState[]>([
       { id: 'Drive', name: 'Lưu trữ', icon: <FolderIcon />, isConnected: true, isSyncEnabled: true },
-      { id: 'Calendar', name: 'Google Calendar', icon: <CalendarIcon />, isConnected: true, isSyncEnabled: true },
+      { id: 'Calendar', name: 'Lịch Google', icon: <CalendarIcon />, isConnected: true, isSyncEnabled: true },
       { id: 'Gmail', name: 'Gmail', icon: <MailIcon />, isConnected: true, isSyncEnabled: false },
-      { id: 'Keep', name: 'Google Keep', icon: <StickyNoteIcon />, isConnected: true, isSyncEnabled: true },
-      { id: 'Tasks', name: 'Google Tasks', icon: <ChecklistIcon />, isConnected: false, isSyncEnabled: false },
-      { id: 'Classroom', name: 'Google Classroom', icon: <GraduationCapIcon />, isConnected: true, isSyncEnabled: false },
-      { id: 'Blogger', name: 'Google Blogger', icon: <BloggerIcon />, isConnected: true, isSyncEnabled: true },
-      { id: 'Chat', name: 'Google Chat', icon: <ChatIcon />, isConnected: true, isSyncEnabled: true },
-      { id: 'Meet', name: 'Google Meet', icon: <VideoIcon />, isConnected: true, isSyncEnabled: true },
+      { id: 'Keep', name: 'Ghi chú Keep', icon: <StickyNoteIcon />, isConnected: true, isSyncEnabled: true },
+      { id: 'Tasks', name: 'Việc cần làm (Tasks)', icon: <ChecklistIcon />, isConnected: false, isSyncEnabled: false },
+      { id: 'Classroom', name: 'Lớp học Classroom', icon: <GraduationCapIcon />, isConnected: true, isSyncEnabled: false },
+      { id: 'Blogger', name: 'Blog Blogger', icon: <BloggerIcon />, isConnected: true, isSyncEnabled: true },
+      { id: 'Chat', name: 'Trao đổi Chat', icon: <ChatIcon />, isConnected: true, isSyncEnabled: true },
+      { id: 'Meet', name: 'Cuộc họp Meet', icon: <VideoIcon />, isConnected: true, isSyncEnabled: true },
   ]);
 
   const handleToggleSync = (id: ServiceName) => {
@@ -455,6 +458,10 @@ const AppContent: React.FC = () => {
     if (view === 'class-detail' && section) {
       setActiveClassId(section);
     }
+
+    if (view === 'blog-article' && section) {
+      setActiveArticleId(section);
+    }
     
     if (view !== 'tasklist') {
         setActiveTaskListId(undefined);
@@ -481,7 +488,7 @@ const AppContent: React.FC = () => {
       case 'website-data':
         return <WebsiteDataView user={user} allUsers={allUsers} onUsersChange={handleUsersChange} />;
       case 'projects':
-        return <ProjectManagementView user={user} onNavigateToTasks={handleNavigateToTasks} />;
+        return <ProjectManagementView user={user} onNavigateToTasks={handleNavigateToTasks} onSendNotification={handleSendNotification} />;
       case 'user-management':
         return <UserManagementView currentUser={user} users={allUsers} onUsersChange={handleUsersChange} />;
       case 'drive':
@@ -498,6 +505,8 @@ const AppContent: React.FC = () => {
         return <NotesView />;
       case 'blog':
         return <BlogView user={user} onNavigate={handleNavigate} onSchedule={handleScheduleFromArticle} onItemViewed={handleItemViewed} />;
+      case 'blog-article':
+        return <BlogArticleView user={user} articleId={activeArticleId} onNavigate={handleNavigate} />;
       case 'new-blog-post':
         return <NewBlogPostView user={user} onNavigate={handleNavigate} />;
       case 'email':
@@ -570,7 +579,7 @@ const AppContent: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="h-screen w-screen bg-transparent p-2 sm:p-4 font-sans text-[--color-text-primary] overflow-hidden">
+    <div className="h-screen w-screen bg-transparent p-[5px] font-sans text-[--color-text-primary] overflow-hidden">
       <div className="w-full h-full bg-[--color-surface-primary] rounded-[10px] shadow-2xl overflow-hidden flex flex-col relative ring-1 ring-black/5">
         {(isMobileNavOpen || isMobileActivityOpen) && (
           <div 

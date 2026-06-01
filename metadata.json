@@ -1,5 +1,5 @@
 {
-  "name": "Remix: ServiceDeskManager",
+  "name": "Service Desk Manager",
   "description": "Phần mềm làm việc giành cho nhân viên Power Service One ",
   "requestFramePermissions": [
     "geolocation",

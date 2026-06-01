@@ -19,8 +19,8 @@ export interface Task {
   notes?: string;
   dueDate?: string;
   completed: boolean;
-  status?: 'Todo' | 'Doing' | 'Review' | 'Done';
-  priority?: 'Low' | 'Medium' | 'High';
+  status?: 'Cần làm' | 'Đang làm' | 'Xem xét' | 'Hoàn thành';
+  priority?: 'Thấp' | 'Trung bình' | 'Cao';
   comments?: TaskComment[];
   assigneeId?: string;
   assigneeName?: string;
@@ -70,9 +70,9 @@ export const mockTaskLists: TaskList[] = [
 ];
 
 export const mockTaskTemplates = [
-    { id: 'tpl-1', text: 'Daily Standup Prep', notes: 'Prepare list of blockers and accomplishments.', priority: 'Medium' as const },
-    { id: 'tpl-2', text: 'Weekly Sync', notes: 'Update team on project status.', priority: 'Medium' as const },
-    { id: 'tpl-3', text: 'Code Review', priority: 'High' as const }
+    { id: 'tpl-1', text: 'Chuẩn bị họp Daily', notes: 'Chuẩn bị danh sách các vấn đề và kết quả đạt được.', priority: 'Trung bình' as const },
+    { id: 'tpl-2', text: 'Họp đồng bộ hàng tuần', notes: 'Cập nhật trạng thái dự án cho nhóm.', priority: 'Trung bình' as const },
+    { id: 'tpl-3', text: 'Duyệt mã nguồn (Code Review)', priority: 'Cao' as const }
 ];
 
 // --- BANNER COMPONENT ---
@@ -280,11 +280,11 @@ const TaskEditModal: React.FC<{
 
                                     <div>
                                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Trạng thái</label>
-                                        <select value={task.status || 'Todo'} onChange={e => setTask({...task, status: e.target.value as 'Todo' | 'Doing' | 'Review' | 'Done'})} className="w-full bg-white/70 border border-slate-300/50 rounded-lg p-2.5 outline-none text-sm font-medium">
-                                            <option value="Todo">Todo</option>
-                                            <option value="Doing">Doing</option>
-                                            <option value="Review">Review</option>
-                                            <option value="Done">Done</option>
+                                        <select value={task.status || 'Cần làm'} onChange={e => setTask({...task, status: e.target.value as 'Cần làm' | 'Đang làm' | 'Xem xét' | 'Hoàn thành'})} className="w-full bg-white/70 border border-slate-300/50 rounded-lg p-2.5 outline-none text-sm font-medium">
+                                            <option value="Cần làm">Cần làm</option>
+                                            <option value="Đang làm">Đang làm</option>
+                                            <option value="Xem xét">Xem xét</option>
+                                            <option value="Hoàn thành">Hoàn thành</option>
                                         </select>
                                     </div>
                                 </div>
@@ -344,10 +344,10 @@ const TaskEditModal: React.FC<{
                                     
                                     <div>
                                         <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Độ ưu tiên</label>
-                                        <select value={task.priority || 'Medium'} onChange={e => setTask({...task, priority: e.target.value as 'Low' | 'Medium' | 'High'})} className="w-full bg-white/70 border border-slate-300/50 rounded-lg p-2.5 outline-none text-sm font-medium">
-                                            <option value="Low">Low</option>
-                                            <option value="Medium">Medium</option>
-                                            <option value="High">High</option>
+                                        <select value={task.priority || 'Trung bình'} onChange={e => setTask({...task, priority: e.target.value as 'Thấp' | 'Trung bình' | 'Cao'})} className="w-full bg-white/70 border border-slate-300/50 rounded-lg p-2.5 outline-none text-sm font-medium">
+                                            <option value="Thấp">Thấp</option>
+                                            <option value="Trung bình">Trung bình</option>
+                                            <option value="Cao">Cao</option>
                                         </select>
                                     </div>
                                 </div>
@@ -578,8 +578,8 @@ const TasklistView: React.FC<{ user: User, allUsers: User[], initialListId?: str
       text: newTaskText.trim(),
       completed: false,
       dueDate: newDueDate || undefined,
-      status: 'Todo',
-      priority: 'Medium',
+      status: 'Cần làm',
+      priority: 'Trung bình',
       updatedAt: Date.now(),
       assigneeId: user.id,
       assigneeName: user.name,

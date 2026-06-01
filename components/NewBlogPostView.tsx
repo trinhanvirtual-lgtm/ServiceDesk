@@ -4,6 +4,9 @@ import { useLanguage } from './LanguageContext';
 import { ChevronLeftIcon, BoldIcon, ItalicIcon, UnderlineIcon, Heading2Icon, Heading3Icon, ListIcon, ListOrderedIcon, QuoteIcon, LinkIcon, ImageIcon, GifIcon, UploadIcon } from './icons';
 import GifPickerModal from './GifPickerModal';
 
+import { db } from '../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+
 interface NewBlogPostViewProps {
   user: User;
   onNavigate: (view: View) => void;
@@ -42,6 +45,10 @@ const NewBlogPostView: React.FC<NewBlogPostViewProps> = ({ user, onNavigate }) =
   const { t } = useLanguage();
   const editorRef = useRef<HTMLDivElement>(null);
   const [title, setTitle] = useState('');
+  const [summary, setSummary] = useState('');
+  const [category, setCategory] = useState('Khác');
+  const [status, setStatus] = useState<'Published' | 'Draft'>('Published');
+  const [isPinned, setIsPinned] = useState(false);
   const [tags, setTags] = useState('');
   const [featuredImage, setFeaturedImage] = useState('https://images.unsplash.com/photo-1499750310107-5fef28a66643?q=80&w=800');
   const [syncToBlogger, setSyncToBlogger] = useState(true);
@@ -113,40 +120,38 @@ const NewBlogPostView: React.FC<NewBlogPostViewProps> = ({ user, onNavigate }) =
     setIsGifPickerOpen(false);
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!title.trim()) {
       alert('Vui lòng nhập tiêu đề cho bài viết.');
       return;
     }
     
-    const newArticle = {
-      id: `internal-${Date.now()}`,
-      title: title.trim(),
-      author: user.name,
-      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
-      previewImage: featuredImage,
-      source: 'Internal' as const,
-      isPinned: false,
-      date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      status: 'Published' as const,
-      content: editorRef.current?.innerHTML || ''
-    };
+    try {
+      await addDoc(collection(db, 'blogArticles'), {
+        title: title.trim(),
+        summary: summary.trim(),
+        content: editorRef.current?.innerHTML || '',
+        authorId: user.id,
+        authorName: user.name,
+        category: category,
+        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
+        previewImage: featuredImage,
+        status: status,
+        isPinned: isPinned,
+        createdAt: Date.now(),
+        serverCreatedAt: serverTimestamp()
+      });
 
-    const savedArticles = localStorage.getItem('blog_articles');
-    let articles = savedArticles ? JSON.parse(savedArticles) : [];
-    articles = [newArticle, ...articles];
-    localStorage.setItem('blog_articles', JSON.stringify(articles));
-    
-    // Dispatch storage event manually for same-tab updates if needed, 
-    // although navigation will re-mount BlogView which reads from LS.
-    window.dispatchEvent(new Event('storage'));
-
-    let message = t('publishSuccess');
-    if (syncToBlogger) {
-      message += `\n${t('publishSuccessBlogger')}`;
+      let message = t('publishSuccess');
+      if (syncToBlogger) {
+        message += `\n${t('publishSuccessBlogger')}`;
+      }
+      alert(message);
+      onNavigate('blog');
+    } catch (error) {
+      console.error("Publish Error:", error);
+      alert("Có lỗi xảy ra khi đăng bài viết.");
     }
-    alert(message);
-    onNavigate('blog');
   };
 
   return (
@@ -222,23 +227,75 @@ const NewBlogPostView: React.FC<NewBlogPostViewProps> = ({ user, onNavigate }) =
         </div>
 
         {/* Settings Sidebar */}
-        <aside className="w-full lg:w-80 shrink-0 bg-[--color-surface-solid] rounded-xl shadow-lg p-6 flex flex-col gap-6">
-          <h3 className="text-xl font-bold text-[--color-text-primary]">{t('postSettings')}</h3>
-          <div className="space-y-4">
+        <aside className="w-full lg:w-96 shrink-0 bg-[--color-surface-solid] rounded-xl shadow-lg p-6 flex flex-col gap-6 overflow-y-auto no-scrollbar">
+          <h3 className="text-xl font-bold text-[--color-text-primary] border-b border-[--color-border-secondary] pb-2">{t('postSettings')}</h3>
+          
+          <div className="space-y-5">
+            {/* Status & Pin */}
+            <div className="grid grid-cols-2 gap-3">
+               <div>
+                  <label className="text-xs font-bold text-[--color-text-subtle] uppercase mb-1.5 block">Trạng thái</label>
+                  <select 
+                    value={status} 
+                    onChange={(e) => setStatus(e.target.value as 'Published' | 'Draft')}
+                    className="w-full bg-[--color-surface-primary] p-2 rounded-md border border-[--color-border-secondary] focus:ring-2 focus:ring-purple-500/20 focus:outline-none text-sm font-medium transition-all"
+                  >
+                    <option value="Published">Công khai</option>
+                    <option value="Draft">Bản nháp</option>
+                  </select>
+               </div>
+               <div>
+                  <label className="text-xs font-bold text-[--color-text-subtle] uppercase mb-1.5 block">Nổi bật</label>
+                  <div className="flex items-center h-9">
+                    <ToggleSwitch label="" checked={isPinned} onChange={setIsPinned} />
+                  </div>
+               </div>
+            </div>
+
+            {/* Category */}
             <div>
-                <label className="text-sm font-semibold text-[--color-text-secondary] mb-2 block">{t('tags')}</label>
+                <label className="text-xs font-bold text-[--color-text-subtle] uppercase mb-1.5 block">Chuyên mục</label>
+                <select 
+                    value={category} 
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-[--color-surface-primary] p-2 rounded-md border border-[--color-border-secondary] focus:ring-2 focus:ring-purple-500/20 focus:outline-none text-sm transition-all"
+                >
+                    <option value="Công nghệ">Công nghệ</option>
+                    <option value="Văn hóa">Văn hóa</option>
+                    <option value="Sự kiện">Sự kiện</option>
+                    <option value="Thông báo">Thông báo</option>
+                    <option value="Đào tạo">Đào tạo</option>
+                    <option value="Khác">Khác</option>
+                </select>
+            </div>
+
+            {/* Summary */}
+            <div>
+                <label className="text-xs font-bold text-[--color-text-subtle] uppercase mb-1.5 block">Tóm tắt ngắn</label>
+                <textarea 
+                    rows={3}
+                    value={summary}
+                    onChange={(e) => setSummary(e.target.value)}
+                    placeholder="Mô tả ngắn gọn về bài viết..."
+                    className="w-full bg-[--color-surface-primary] p-2.5 rounded-md border border-[--color-border-secondary] focus:ring-2 focus:ring-purple-500/20 focus:outline-none text-sm placeholder-slate-400 resize-none transition-all" 
+                />
+            </div>
+
+            {/* Tags */}
+            <div>
+                <label className="text-xs font-bold text-[--color-text-subtle] uppercase mb-1.5 block">{t('tags')}</label>
                 <input 
                     type="text" 
                     value={tags}
                     onChange={(e) => setTags(e.target.value)}
                     placeholder="tag1, tag2, ..."
-                    className="w-full bg-[--color-surface-primary] p-2 rounded-md border border-[--color-border-secondary] focus:ring-1 focus:ring-[--color-accent-500] focus:outline-none placeholder-slate-400" 
+                    className="w-full bg-[--color-surface-primary] p-2.5 rounded-md border border-[--color-border-secondary] focus:ring-2 focus:ring-purple-500/20 focus:outline-none text-sm placeholder-slate-400 transition-all" 
                 />
             </div>
+
+            {/* Featured Image */}
             <div>
-                <label className="text-sm font-semibold text-[--color-text-secondary] mb-2 block">
-                  {t('featuredImageUrl')} / Tải lên từ máy
-                </label>
+                <label className="text-xs font-bold text-[--color-text-subtle] uppercase mb-1.5 block"> Ảnh đại diện bài viết </label>
                 {featuredImage && (
                   <div className="relative group rounded-lg overflow-hidden border border-[--color-border-secondary] mb-2 bg-[--color-surface-primary]">
                     <img src={featuredImage} alt="Featured preview" className="w-full h-32 object-cover" />

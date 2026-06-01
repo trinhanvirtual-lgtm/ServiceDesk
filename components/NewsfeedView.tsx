@@ -113,130 +113,6 @@ export interface Post {
     backgroundGradient?: string;
 }
 
-// --- MOCK DATA ---
-export const mockPosts: Post[] = [
-    {
-        id: 'post-1',
-        author: { name: 'Lê Thị Bình', avatar: 'https://i.pravatar.cc/150?u=2' },
-        timestamp: '2 hours ago',
-        type: 'announcement',
-        content: '📢 Thông báo quan trọng: Kể từ ngày 1/8, toàn bộ công ty sẽ áp dụng quy trình làm việc Agile mới. Mọi người vui lòng tham gia buổi training bắt buộc vào lúc 9:00 sáng thứ Hai tuần tới. Chi tiết sẽ được gửi qua email.',
-        tags: ['company-wide', 'process'],
-        isPinned: true,
-        isSaved: false,
-        isRead: true,
-        reactions: [
-            { emoji: '❤️', count: 12, users: [] },
-            { emoji: '😮', count: 5, users: [] },
-        ],
-        comments: [
-            { id: 'c1-1', author: { name: 'Phạm Minh Cường', avatar: 'https://i.pravatar.cc/150?u=3' }, text: 'Đã nhận thông tin!', timestamp: '1h ago' }
-        ],
-        audience: 'company',
-    },
-    {
-        id: 'post-2',
-        author: { name: 'Hung Thai', avatar: 'HT' },
-        timestamp: '8 hours ago',
-        type: 'poll',
-        content: 'Mọi người cho ý kiến về điểm đến nghỉ mát của năm nay nhé!',
-        tags: ['company-trip', 'survey'],
-        isPinned: false,
-        isSaved: true,
-        isRead: true,
-        reactions: [
-            { emoji: '🔥', count: 25, users: [] }
-        ],
-        comments: [
-             { id: 'c2-1', author: { name: 'Vũ Thị Dung', avatar: 'https://i.pravatar.cc/150?u=4' }, text: 'Ý tưởng tuyệt vời ạ! Em ủng hộ Phú Quốc.', timestamp: '7h ago' }
-        ],
-        poll: {
-            question: "Lựa chọn điểm đến kỳ nghỉ mát hè 2026? 🏖️",
-            options: [
-                { id: "1", text: "Phú Quốc (Phù hợp nghỉ dưỡng)", votes: 14, voters: [] },
-                { id: "2", text: "Nha Trang (Nhiều hoạt động ngoài trời)", votes: 8, voters: [] },
-                { id: "3", text: "Đà Nẵng / Hội An (Kết hợp văn hóa phố cổ)", votes: 19, voters: [] }
-            ]
-        },
-        audience: 'company',
-    },
-    {
-        id: 'post-event-1',
-        author: { name: 'Phạm Minh Cường', avatar: 'https://i.pravatar.cc/150?u=3' },
-        timestamp: 'Yesterday',
-        type: 'event',
-        content: 'Chào mừng tất cả mọi người đăng ký dự chương trình thảo luận kết hợp vinh danh sắp tới!',
-        tags: ['general', 'event'],
-        isPinned: false,
-        isSaved: false,
-        isRead: false,
-        reactions: [],
-        comments: [],
-        event: {
-            title: "Hội Thảo Agile & Chuyển Đổi Số Doanh Nghiệp tại Trụ Sở",
-            date: "2026-08-24",
-            time: "09:00 - 11:30",
-            location: "Phòng hội nghị tầng 5 hoặc Zoom link trực tuyến",
-            attendees: ["Hung Thai"]
-        },
-        audience: 'company'
-    },
-    {
-        id: 'post-kudos-1',
-        author: { name: 'Trần Minh Anh', avatar: 'https://i.pravatar.cc/150?u=5' },
-        timestamp: '1 day ago',
-        type: 'kudos',
-        content: 'Cảm ơn sự cống hiến quên mình vì khách hàng trong thời gian cao điểm vừa qua!',
-        tags: ['reward', 'kudos'],
-        isPinned: false,
-        isSaved: false,
-        isRead: true,
-        reactions: [{ emoji: '🎉', count: 8, users: [] }],
-        comments: [],
-        kudos: {
-            recipient: "Lê Thị Bình",
-            badge: "cup",
-            badgeLabel: "Chiến binh Doanh số & Chăm sóc KH Vàng 🏆"
-        },
-        audience: 'company'
-    },
-    {
-        id: 'post-welcome-1',
-        author: { name: 'Hung Thai', avatar: 'HT' },
-        timestamp: '2 days ago',
-        type: 'welcome',
-        content: 'Gia đình chúng ta tiếp tục chào đón một mảnh ghép vô cùng tuyệt vời gia nhập team Thiết kế!',
-        tags: ['hr', 'newcomer'],
-        isPinned: false,
-        isSaved: false,
-        isRead: true,
-        reactions: [{ emoji: '❤️', count: 18, users: [] }],
-        comments: [],
-        welcome: {
-            name: "Nguyên Vũ",
-            role: "Product Designer (UI/UX)"
-        },
-        audience: 'company'
-    },
-    {
-        id: 'post-3',
-        author: { name: 'Hoàng Văn Em', avatar: 'https://i.pravatar.cc/150?u=5' },
-        timestamp: 'Yesterday',
-        type: 'media',
-        content: 'Cùng xem lại những khoảnh khắc đáng nhớ trong chuyến company trip vừa rồi! 📸🏖️',
-        image: 'https://images.unsplash.com/photo-1509233725247-49e657c54213?q=80&w=1000',
-        tags: ['event', 'company-trip'],
-        isPinned: false,
-        isSaved: false,
-        isRead: false,
-        reactions: [
-            { emoji: '❤️', count: 48, users: [] }
-        ],
-        comments: [],
-        audience: 'company',
-    }
-];
-
 // --- CONFIGS ---
 const postTypeConfig: Record<PostType, { label: string; icon: React.ReactNode; color: string; }> = {
     announcement: { label: 'Thông báo', icon: <MegaphoneIconLc className="w-4 h-4" />, color: 'bg-orange-500' },
@@ -836,17 +712,14 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
         return 'Just now';
     };
 
-    // Load initial posts & keep local copy
+    // Load initial posts from Firestore
     useEffect(() => {
-        const savedFeed = localStorage.getItem('newsfeed_posts');
-        if (savedFeed) {
-            setPosts(JSON.parse(savedFeed));
-        } else {
-            localStorage.setItem('newsfeed_posts', JSON.stringify(mockPosts));
-            setPosts(mockPosts);
+        if (!auth.currentUser || user.id.startsWith('user-')) {
+            const savedFeed = localStorage.getItem('newsfeed_posts');
+            if (savedFeed) setPosts(JSON.parse(savedFeed));
+            return;
         }
 
-        if (!auth.currentUser || user.id.startsWith('user-')) return;
         const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const fetchedPosts = snapshot.docs.map(doc => {
@@ -857,17 +730,13 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
                     timestamp: formatTimestamp(data.createdAt),
                 } as Post;
             });
-            
-            if (fetchedPosts.length > 0) {
-                // Merge FB/LS mock fields with Firebase ones
-                setPosts(fetchedPosts);
-            }
+            setPosts(fetchedPosts);
         }, (error) => {
             handleFirestoreError(error, OperationType.LIST, 'posts');
         });
 
         return () => unsubscribe();
-    }, []);
+    }, [user.id]);
 
     const savePostsState = (newPosts: Post[]) => {
         setPosts(newPosts);
@@ -881,19 +750,6 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
     };
 
     const handleAddPost = async (post: Omit<Post, 'id' | 'timestamp' | 'reactions' | 'comments' | 'isPinned' | 'isSaved' | 'isRead'>) => {
-        const newPost: Post = {
-            ...post,
-            id: `post-${Date.now()}`,
-            timestamp: 'Just now',
-            isPinned: false,
-            isSaved: false,
-            isRead: true,
-            reactions: [],
-            comments: []
-        };
-        const updated = [newPost, ...posts];
-        savePostsState(updated);
-
         try {
             if (auth.currentUser && !user.id.startsWith('user-')) {
                 await addDoc(collection(db, 'posts'), {
@@ -906,6 +762,20 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
                     createdAt: serverTimestamp(),
                     authorId: auth.currentUser?.uid || 'anonymous'
                 });
+            } else {
+                // Fallback for demo mode
+                const newPost: Post = {
+                    ...post,
+                    id: `post-${Date.now()}`,
+                    timestamp: 'Just now',
+                    isPinned: false,
+                    isSaved: false,
+                    isRead: true,
+                    reactions: [],
+                    comments: []
+                };
+                const updated = [newPost, ...posts];
+                setPosts(updated);
             }
         } catch (error) {
             handleFirestoreError(error, OperationType.CREATE, 'posts');
@@ -913,17 +783,17 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
     };
 
     const handleTogglePin = async (id: string) => {
-        const updated = posts.map(p => p.id === id ? { ...p, isPinned: !p.isPinned } : p);
-        savePostsState(updated);
+        const post = posts.find(p => p.id === id);
+        if (!post) return;
 
         try {
             if (!id.startsWith('post-') && auth.currentUser) {
-                const p = posts.find(item => item.id === id);
-                if (p) {
-                    await updateDoc(doc(db, 'posts', id), {
-                        isPinned: !p.isPinned
-                    });
-                }
+                await updateDoc(doc(db, 'posts', id), {
+                    isPinned: !post.isPinned
+                });
+            } else {
+                const updated = posts.map(p => p.id === id ? { ...p, isPinned: !p.isPinned } : p);
+                setPosts(updated);
             }
         } catch (error) {
             handleFirestoreError(error, OperationType.UPDATE, `posts/${id}`);
@@ -931,17 +801,17 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
     };
     
     const handleToggleSave = async (id: string) => {
-        const updated = posts.map(p => p.id === id ? { ...p, isSaved: !p.isSaved } : p);
-        savePostsState(updated);
+        const post = posts.find(p => p.id === id);
+        if (!post) return;
 
         try {
             if (!id.startsWith('post-') && auth.currentUser) {
-                const p = posts.find(item => item.id === id);
-                if (p) {
-                    await updateDoc(doc(db, 'posts', id), {
-                        isSaved: !p.isSaved
-                    });
-                }
+                await updateDoc(doc(db, 'posts', id), {
+                    isSaved: !post.isSaved
+                });
+            } else {
+                const updated = posts.map(p => p.id === id ? { ...p, isSaved: !p.isSaved } : p);
+                setPosts(updated);
             }
         } catch (error) {
             handleFirestoreError(error, OperationType.UPDATE, `posts/${id}`);
@@ -949,13 +819,14 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
     };
 
     const handleUpdatePost = async (updatedPost: Post) => {
-        const updated = posts.map(p => p.id === updatedPost.id ? updatedPost : p);
-        savePostsState(updated);
-
         try {
             if (!updatedPost.id.startsWith('post-') && auth.currentUser) {
-                const { id, ...postData } = updatedPost;
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { id, timestamp, ...postData } = updatedPost;
                 await updateDoc(doc(db, 'posts', id), postData);
+            } else {
+                const updated = posts.map(p => p.id === updatedPost.id ? updatedPost : p);
+                setPosts(updated);
             }
         } catch (error) {
             handleFirestoreError(error, OperationType.UPDATE, `posts/${updatedPost.id}`);
