@@ -459,6 +459,7 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user, onN
     }).sort((a, b) => a.startDays - b.startDays);
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const renderProjectNode = (p: ProjectData, depth: number = 0): React.ReactNode => {
     const listIds = p.taskListIds || (p.taskListId ? [p.taskListId] : []);
     const subProjects = projects.filter(sp => sp.parentProjectId === p.id);
@@ -828,7 +829,7 @@ const ProjectManagementView: React.FC<ProjectManagementViewProps> = ({ user, onN
                           }
 
                           // Build tree model
-                          type MMNode = { id: string; name: string; type: string; meta?: any; children: MMNode[] };
+                          type MMNode = { id: string; name: string; type: string; meta?: unknown; children: MMNode[] };
                           const buildNode = (p: ProjectData): MMNode => {
                               const subProjects = projects.filter(sp => sp.parentProjectId === p.id);
                               const listIds = p.taskListIds || (p.taskListId ? [p.taskListId] : []);

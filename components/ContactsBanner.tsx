@@ -59,7 +59,7 @@ const AnimatedContactsIcon = () => (
 
 const ContactsBanner: React.FC = () => {
     return (
-        <div className="relative py-3 px-6 sm:py-4 sm:px-8 rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-700 text-white overflow-hidden shadow-lg">
+        <div className="relative py-3 px-6 sm:py-4 sm:px-8 rounded-xl bg-gradient-to-br from-purple-500 to-fuchsia-700 text-white overflow-hidden shadow-sm">
             <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full z-0" aria-hidden="true"></div>
             <div className="absolute top-0 left-0 w-24 h-24 bg-white/10 rounded-lg opacity-80 z-0 rotate-12" aria-hidden="true"></div>
       

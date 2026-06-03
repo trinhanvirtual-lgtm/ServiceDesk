@@ -397,22 +397,13 @@ const AppContent: React.FC = () => {
           // Editing existing event
           setEvents(prev => prev.map(e => e.id === eventData.id ? { 
               ...e, 
-              title: eventData.title,
-              date: eventData.date,
-              startTime: eventData.startTime,
-              endTime: eventData.endTime,
-              recurrence: eventData.recurrence,
+              ...eventData,
               color: eventData.color || e.color
           } : e));
       } else {
           // Creating new event
           const newEvent: CalendarEvent = {
-              title: eventData.title,
-              date: eventData.date,
-              startTime: eventData.startTime,
-              endTime: eventData.endTime,
-              recurrence: eventData.recurrence,
-              isGoogleEvent: (eventData as { isGoogleEvent?: boolean }).isGoogleEvent,
+              ...eventData,
               id: `evt-${Date.now()}`,
               color: eventData.color || 'green'
           };

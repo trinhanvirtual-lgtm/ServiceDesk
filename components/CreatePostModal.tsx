@@ -327,7 +327,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ user, isOpen, onClose
                     {/* DYNAMIC COMPONENT INPUT BLOCKS */}
 
                     {/* Thiết lập hình màu & hình nền nổi bật */}
-                    <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-800/80 rounded-xl space-y-3">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800/80 rounded-xl space-y-3">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
                             🎨 Thiết lập hình màu & hình nền bài viết
                         </label>
@@ -482,7 +482,7 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ user, isOpen, onClose
                         {bgImage && (
                             <div className="pt-1 space-y-1.5">
                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Hình nền của bạn</label>
-                                <div className="relative rounded-xl overflow-hidden shadow-sm max-w-sm border border-slate-205 dark:border-slate-800 bg-black/10">
+                                <div className="relative rounded-xl overflow-hidden shadow-sm max-w-sm border border-slate-200 dark:border-slate-800 bg-black/10">
                                     <img src={bgImage} alt="Custom Background Cover" className="w-full h-20 object-cover" />
                                     <button
                                         type="button"

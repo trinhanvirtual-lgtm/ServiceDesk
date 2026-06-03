@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../App';
 import { useLanguage } from './LanguageContext';
-import { SettingsIcon, FileTextIcon, FolderIcon, FileEditIcon, TrashIcon, PlusIcon, XIcon, CheckCircleIcon, SyncIcon, HomeIcon, LayoutIcon, BriefcaseIcon, BookOpenIcon, ChevronRightIcon, ImageIcon, UsersIcon, MailIcon, LockIcon, CheckIcon } from './icons';
+import { SettingsIcon, FileTextIcon, FolderIcon, FileEditIcon, TrashIcon, PlusIcon, XIcon, CheckCircleIcon, SyncIcon, UsersIcon, MailIcon, LockIcon, CheckIcon } from './icons';
 import { db, auth } from '../firebase';
-import { collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 import UserManagementView from './UserManagementView';
 import WebsiteBanner from './WebsiteBanner';
 
@@ -12,19 +12,6 @@ interface WebsiteDataViewProps {
   allUsers: User[];
   onUsersChange: (users: User[]) => void;
 }
-
-interface Service {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-}
-
-const mockServices: Service[] = [
-  { id: '1', title: 'Tư vấn giải pháp', description: 'Cung cấp các giải pháp tối ưu cho doanh nghiệp dựa trên nền tảng công nghệ hiện đại.', imageUrl: 'https://images.unsplash.com/photo-1454165833772-d996d49513d7?q=80&w=400' },
-  { id: '2', title: 'Phát triển phần mềm', description: 'Xây dựng website, ứng dụng di động và hệ thống quản lý chuyên sâu theo yêu cầu.', imageUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=400' },
-  { id: '3', title: 'Đào tạo nhân sự', description: 'Chương trình đào tạo kỹ năng số và tư duy quản trị mới cho đội ngũ nhân sự.', imageUrl: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=400' },
-];
 
 interface PageData {
   id: string;
@@ -36,7 +23,6 @@ interface PageData {
 }
 
 const mockPages: PageData[] = [
-  { id: '1', title: 'Trang chủ', slug: '/', status: 'published', lastUpdated: '2024-03-10', content: 'Nội dung trang chủ...' },
   { id: '2', title: 'Giới thiệu', slug: '/about', status: 'published', lastUpdated: '2024-03-05', content: 'Giới thiệu công ty...' },
   { id: '3', title: 'Dịch vụ', slug: '/services', status: 'published', lastUpdated: '2024-02-28', content: 'Danh sách dịch vụ...' },
   { id: '4', title: 'Khuyến mãi mùa hè', slug: '/summer-promo', status: 'draft', lastUpdated: '2024-04-12', content: 'Khuyến mãi đặc biệt...' },
@@ -71,10 +57,9 @@ export interface EmailConfig {
 
 const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUsersChange }) => {
   const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'home' | 'pages' | 'media' | 'settings' | 'permissions' | 'email-config'>('home');
+  const [activeTab, setActiveTab] = useState<'pages' | 'media' | 'settings' | 'permissions' | 'email-config'>('pages');
   const [pages, setPages] = useState<PageData[]>(mockPages);
   const [isLoading, setIsLoading] = useState(true);
-  const [articles, setArticles] = useState<unknown[]>([]);
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -195,13 +180,6 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
       }
     });
 
-    const blogRef = collection(db, 'blogArticles');
-    const q = query(blogRef, orderBy('createdAt', 'desc'), limit(4));
-    const unsubscribeBlog = onSnapshot(q, (snapshot) => {
-        const articlesList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setArticles(articlesList);
-    });
-
     const emailSettingsRef = doc(db, 'settings', 'email');
     const unsubscribeEmail = onSnapshot(emailSettingsRef, (docSnap) => {
       if (docSnap.exists()) {
@@ -223,7 +201,6 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
       unsubscribePages();
       unsubscribeSettings();
       unsubscribeEmail();
-      unsubscribeBlog();
     };
   }, []);
 
@@ -463,13 +440,6 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
 
       <div className="flex border-b border-[--color-border-secondary] px-2 shrink-0 gap-6">
         <button
-          onClick={() => setActiveTab('home')}
-          className={`pb-4 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'home' ? 'border-[--color-accent-500] text-[--color-accent-600] dark:text-[--color-accent-400]' : 'border-transparent text-[--color-text-secondary] hover:text-[--color-text-primary]'}`}
-        >
-          <HomeIcon className="w-4 h-4" />
-          <span>{t('homePage') || 'Trang chủ'}</span>
-        </button>
-        <button
           onClick={() => setActiveTab('pages')}
           className={`pb-4 font-semibold text-sm transition-colors border-b-2 flex items-center gap-2 ${activeTab === 'pages' ? 'border-[--color-accent-500] text-[--color-accent-600] dark:text-[--color-accent-400]' : 'border-transparent text-[--color-text-secondary] hover:text-[--color-text-primary]'}`}
         >
@@ -509,150 +479,6 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 md:px-8 pt-6 pb-28 md:pb-12 space-y-8">
-        {activeTab === 'home' && (
-          <div className="animate-fade-in-up space-y-8 pb-10">
-            {/* Hero Configuration */}
-            <section className="bg-[--color-surface-secondary] rounded-2xl border border-[--color-border-secondary] p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
-                        <LayoutIcon className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <h2 className="text-lg font-bold text-[--color-text-primary]">Cấu hình trang chủ</h2>
-                        <p className="text-xs text-[--color-text-secondary]">Nội dung hiển thị trên banner chính và giới thiệu tổng quan</p>
-                    </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-semibold text-[--color-text-secondary] mb-1">Tiêu đề chính (H1)</label>
-                            <input 
-                                type="text" 
-                                value={siteName}
-                                onChange={(e) => setSiteName(e.target.value)}
-                                className="w-full bg-[--color-surface-primary] border border-[--color-border-secondary] text-[--color-text-primary] rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-[--color-accent-500] outline-none"
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-semibold text-[--color-text-secondary] mb-1">Mô tả ngắn</label>
-                            <textarea 
-                                rows={3}
-                                value={siteDesc}
-                                onChange={(e) => setSiteDesc(e.target.value)}
-                                className="w-full bg-[--color-surface-primary] border border-[--color-border-secondary] text-[--color-text-primary] rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-[--color-accent-500] outline-none resize-none"
-                            />
-                        </div>
-                    </div>
-                    <div className="bg-[--color-surface-tertiary] rounded-xl p-4 flex flex-col justify-center border border-[--color-border-secondary] border-dashed">
-                        <p className="text-xs font-bold text-[--color-text-subtle] uppercase mb-3">Xem trước Hero Banner</p>
-                        <div className="bg-gradient-to-br from-blue-600/10 to-indigo-600/10 rounded-lg p-6 text-center border border-blue-200 dark:border-blue-800">
-                             <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100">{siteName}</h3>
-                             <p className="text-sm text-blue-700 dark:text-blue-300 mt-2 line-clamp-2">{siteDesc}</p>
-                             <button className="mt-4 px-4 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-full pointer-events-none">Khám phá ngay</button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Featured Articles Section */}
-            <section className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg">
-                            <BookOpenIcon className="w-5 h-5" />
-                        </div>
-                        <div>
-                             <h2 className="text-lg font-bold text-[--color-text-primary]">Bài viết nổi bật</h2>
-                             <p className="text-xs text-[--color-text-secondary]">Hiển thị các bài viết mới nhất hoặc được ghim trên trang chủ</p>
-                        </div>
-                    </div>
-                    <button className="text-sm font-semibold text-[--color-accent-600] flex items-center gap-1 hover:underline">
-                        Quản lý Blog <ChevronRightIcon className="w-4 h-4" />
-                    </button>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {articles.map((article) => (
-                        <div key={article.id} className="bg-[--color-surface-secondary] rounded-xl overflow-hidden border border-[--color-border-secondary] group transition-all hover:shadow-md">
-                            <div className="aspect-video relative overflow-hidden">
-                                <img src={article.previewImage} alt={article.title} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                                <div className="absolute top-2 right-2 flex gap-1">
-                                    <span className="bg-white/90 dark:bg-black/70 backdrop-blur-sm text-[10px] font-bold px-2 py-0.5 rounded-full text-[--color-text-primary]">Blog</span>
-                                </div>
-                            </div>
-                            <div className="p-3 space-y-2">
-                                <h4 className="text-sm font-bold text-[--color-text-primary] line-clamp-2 leading-tight h-10">{article.title}</h4>
-                                <div className="flex items-center justify-between mt-auto">
-                                    <span className="text-[10px] text-[--color-text-secondary]">{new Date(article.createdAt).toLocaleDateString('vi-VN')}</span>
-                                    <button className="p-1 hover:bg-[--color-surface-tertiary] rounded-md transition-colors text-[--color-text-secondary]">
-                                        <SyncIcon className="w-3.5 h-3.5" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                    <button className="bg-[--color-surface-secondary]/50 dark:bg-white/5 border border-dashed border-[--color-border-secondary] rounded-xl flex flex-col items-center justify-center p-6 text-[--color-text-subtle] hover:text-[--color-text-primary] hover:bg-[--color-surface-secondary] transition-all gap-2 group">
-                        <PlusIcon className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs font-bold uppercase tracking-wider">Chọn thêm</span>
-                    </button>
-                </div>
-            </section>
-
-            {/* Main Services Section */}
-            <section className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg">
-                            <BriefcaseIcon className="w-5 h-5" />
-                        </div>
-                        <div>
-                             <h2 className="text-lg font-bold text-[--color-text-primary]">Dịch vụ chính</h2>
-                             <p className="text-xs text-[--color-text-secondary]">Giới thiệu các cột trụ kinh doanh quan trọng của công ty</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {mockServices.map((service, idx) => (
-                        <div key={service.id} className="bg-[--color-surface-secondary] rounded-2xl overflow-hidden border border-[--color-border-secondary] flex flex-col">
-                            <div className="h-40 relative">
-                                <img src={service.imageUrl} alt={service.title} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
-                                    <span className="text-white font-bold text-lg">0{idx + 1}</span>
-                                </div>
-                            </div>
-                            <div className="p-5 flex-1 flex flex-col">
-                                <h3 className="font-bold text-[--color-text-primary] mb-2">{service.title}</h3>
-                                <p className="text-sm text-[--color-text-secondary] leading-relaxed mb-4">{service.description}</p>
-                                <div className="mt-auto pt-4 flex items-center justify-between border-t border-[--color-border-secondary]">
-                                    <button className="text-xs font-bold text-[--color-accent-600] uppercase tracking-wider flex items-center gap-1">Chỉnh sửa</button>
-                                    <div className="flex gap-2">
-                                        <button className="p-1.5 hover:bg-[--color-surface-tertiary] rounded-lg transition-colors">
-                                            <ImageIcon className="w-4 h-4 text-[--color-text-secondary]" />
-                                        </button>
-                                        <button className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">
-                                            <TrashIcon className="w-4 h-4 text-red-500" />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                    <button className="bg-[--color-surface-secondary]/50 dark:bg-white/5 border border-dashed border-[--color-border-secondary] rounded-2xl flex flex-col items-center justify-center p-10 text-[--color-text-subtle] hover:text-[--color-text-primary] hover:bg-[--color-surface-secondary] transition-all gap-3 group min-h-[300px]">
-                        <div className="w-12 h-12 rounded-full border-2 border-dashed border-[--color-border-secondary] flex items-center justify-center group-hover:scale-110 transition-transform">
-                            <PlusIcon className="w-6 h-6" />
-                        </div>
-                        <div className="text-center">
-                            <p className="font-bold uppercase tracking-widest text-[10px] mb-1">Thêm dịch vụ</p>
-                            <p className="text-[10px] opacity-60">Tùy chỉnh nội dung dịch vụ mới</p>
-                        </div>
-                    </button>
-                </div>
-            </section>
-          </div>
-        )}
-
         {activeTab === 'pages' && (
           <div className="animate-fade-in-up">
             <div className="flex justify-between items-center mb-6">

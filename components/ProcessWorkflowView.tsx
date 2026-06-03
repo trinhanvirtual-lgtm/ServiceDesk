@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { User, View } from '../App';
-import { XIcon, WorkflowIcon, UserIcon, ClockIcon, ChecklistIcon, TrashIcon, LightningIcon, CheckIcon } from './icons';
+import { XIcon, WorkflowIcon, UserIcon, ClockIcon, ChecklistIcon, LightningIcon, CheckIcon } from './icons';
 import Xarrow, { Xwrapper } from 'react-xarrows';
 
 interface ProcessNode {

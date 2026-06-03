@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { PlusIcon, PencilIcon, XIcon, TrashIcon, MessageSquareIcon, PaperAirplaneIcon, MoreVerticalIcon, PaperclipIcon, UserPlusIcon, MailIcon, StickyNoteIcon, UsersIcon, ShareIcon, SearchIcon } from './icons';
+import React, { useState } from 'react';
+import { PlusIcon, XIcon, TrashIcon, MessageSquareIcon, PaperAirplaneIcon, MoreVerticalIcon, PaperclipIcon, UserPlusIcon, UsersIcon, ShareIcon, SearchIcon } from './icons';
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../App';
 
@@ -55,6 +55,7 @@ export interface TaskList {
   name: string;
   tasks: Task[];
   source?: 'google';
+  sharedUserIds?: string[];
 }
 
 // --- MOCK DATA ---
@@ -315,8 +316,8 @@ const TaskEditModal: React.FC<{
     return (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 flex justify-center items-center p-4">
              <div className="absolute inset-0" onClick={onClose}></div>
-             <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-white/80 backdrop-blur-2xl rounded-xl shadow-2xl flex flex-col animate-fade-in-up">
-                 <header className="p-4 border-b border-slate-200/80 flex justify-between items-center sticky top-0 bg-white/90 z-10">
+             <div className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden bg-[#F4F5F7] rounded-xl shadow-2xl flex flex-col animate-fade-in-up">
+                 <header className="p-4 border-b border-slate-200/80 flex justify-between items-center sticky top-0 bg-[#F4F5F7] z-10">
                     <h2 className="text-lg font-semibold text-slate-800">Chỉnh sửa công việc</h2>
                     <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-slate-400/20"><XIcon className="w-5 h-5"/></button>
                  </header>
@@ -634,7 +635,7 @@ const TaskEditModal: React.FC<{
                     </form>
 
                     {/* Comments Section */}
-                    <div className="w-full lg:w-96 flex flex-col bg-[#E6E6E6] border-l border-slate-200 min-h-0">
+                    <div className="w-full lg:w-96 flex flex-col bg-[#F4F5F7] border-l border-slate-200 min-h-0">
                         <header className="px-4 py-3 flex items-center gap-2">
                             <MessageSquareIcon className="w-4 h-4 text-slate-500" />
                             <h3 className="font-bold text-slate-700 text-sm">Thảo luận</h3>
@@ -713,6 +714,14 @@ const TasklistView: React.FC<{ user: User, allUsers: User[], initialListId?: str
   const [toastMessage, setToastMessage] = useState('');
   const [showTemplateMenuId, setShowTemplateMenuId] = useState<string | null>(null);
 
+  // Thêm state cho danh sách
+  const [editingListId, setEditingListId] = useState<string | null>(null);
+  const [editingListName, setEditingListName] = useState('');
+  const [listMenuOpenId, setListMenuOpenId] = useState<string | null>(null);
+  const [isAddingList, setIsAddingList] = useState(false);
+  const [newListName, setNewListName] = useState('');
+  const [sharingListId, setSharingListId] = useState<string | null>(null);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {
@@ -733,6 +742,49 @@ const TasklistView: React.FC<{ user: User, allUsers: User[], initialListId?: str
       document.body.removeChild(textarea);
       showToast(`Đã sao chép liên kết chia sẻ công việc: "${task.text}"!`);
     });
+  };
+
+  const handleAddList = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newListName.trim()) return;
+    const newList: TaskList = {
+      id: `list-${Date.now()}`,
+      name: newListName.trim(),
+      tasks: [],
+      sharedUserIds: []
+    };
+    setTaskLists([...taskLists, newList]);
+    setNewListName('');
+    setIsAddingList(false);
+  };
+
+  const handleDeleteList = (listId: string) => {
+    if(confirm('Bạn có chắc chắn muốn xóa danh sách này?')) {
+        setTaskLists(taskLists.filter(l => l.id !== listId));
+    }
+    setListMenuOpenId(null);
+  };
+
+  const handleSaveListName = () => {
+    if (!editingListName.trim() || !editingListId) return;
+    setTaskLists(taskLists.map(l => 
+        l.id === editingListId ? { ...l, name: editingListName.trim() } : l
+    ));
+    setEditingListId(null);
+  };
+
+  const handleToggleShareUser = (listId: string, userId: string) => {
+      setTaskLists(taskLists.map(l => {
+          if (l.id === listId) {
+              const currentShared = l.sharedUserIds || [];
+              if (currentShared.includes(userId)) {
+                  return { ...l, sharedUserIds: currentShared.filter(id => id !== userId) };
+              } else {
+                  return { ...l, sharedUserIds: [...currentShared, userId] };
+              }
+          }
+          return l;
+      }));
   };
 
   const handleAddTask = async (e: React.FormEvent, listId: string) => {
@@ -868,14 +920,71 @@ const TasklistView: React.FC<{ user: User, allUsers: User[], initialListId?: str
                   <div key={list.id} className="w-80 sm:w-96 shrink-0 bg-white/60 backdrop-blur-xl rounded-2xl shadow-lg border border-white/40 flex flex-col snap-center max-h-full overflow-hidden">
                     {/* Column Header */}
                     <div className="p-4 border-b border-white/50 shrink-0 flex justify-between items-center bg-white/40">
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-xl font-bold text-slate-800">{list.name}</h2>
-                        <span className="text-sm font-bold text-slate-500 bg-slate-200/50 px-2 py-0.5 rounded-full">{list.tasks.length}</span>
-                      </div>
-                      <div className="flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity">
-                        <button className="p-1 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors" title="Thêm thành viên"><UserPlusIcon className="w-4 h-4" /></button>
-                        <button className="p-1 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"><MoreVerticalIcon className="w-5 h-5" /></button>
-                      </div>
+                      {editingListId === list.id ? (
+                        <div className="flex items-center gap-2 flex-1">
+                          <input 
+                            type="text" 
+                            value={editingListName} 
+                            onChange={e => setEditingListName(e.target.value)} 
+                            className="flex-1 bg-white border border-blue-500 rounded px-2 py-1 text-sm font-semibold text-slate-800"
+                            autoFocus
+                            onKeyDown={e => { if(e.key === 'Enter') handleSaveListName(); if(e.key === 'Escape') setEditingListId(null); }}
+                          />
+                          <button onClick={handleSaveListName} className="text-blue-600 font-bold text-xs">Lưu</button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-3">
+                            <h2 className="text-xl font-bold text-slate-800">{list.name}</h2>
+                            <span className="text-sm font-bold text-slate-500 bg-slate-200/50 px-2 py-0.5 rounded-full">{list.tasks.length}</span>
+                            {/* Chân dung người dùng được chia sẻ */}
+                            {list.sharedUserIds && list.sharedUserIds.length > 0 && (
+                                <div className="flex -space-x-2">
+                                  {list.sharedUserIds.map(uid => {
+                                      const u = allUsers.find(au => au.id === uid);
+                                      if (!u) return null;
+                                      return u.avatar ? (
+                                        <img key={u.id} src={u.avatar} alt={u.name} className="w-6 h-6 rounded-full border border-white" title={u.name} />
+                                      ) : (
+                                        <div key={u.id} className="w-6 h-6 rounded-full border border-white bg-slate-200 flex justify-center items-center text-[10px] text-slate-600 font-bold" title={u.name}>{u.name.charAt(0)}</div>
+                                      );
+                                  })}
+                                </div>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 opacity-60 hover:opacity-100 transition-opacity relative">
+                            <button onClick={() => setSharingListId(sharingListId === list.id ? null : list.id)} className={`p-1 rounded-lg transition-colors ${sharingListId === list.id ? 'bg-blue-100 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`} title="Thêm thành viên">
+                                <UserPlusIcon className="w-4 h-4" />
+                            </button>
+                            {sharingListId === list.id && (
+                              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-slate-200 rounded-lg shadow-xl z-20 py-1">
+                                  <div className="px-3 py-2 text-xs font-bold text-slate-500 border-b border-slate-100">Chia sẻ danh sách</div>
+                                  <div className="max-h-48 overflow-y-auto">
+                                    {allUsers.map(u => (
+                                      <label key={u.id} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={list.sharedUserIds?.includes(u.id) || false}
+                                            onChange={() => handleToggleShareUser(list.id, u.id)}
+                                            className="rounded text-blue-600"
+                                        />
+                                        <span className="text-xs font-medium text-slate-700 truncate">{u.name}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                              </div>
+                            )}
+
+                            <button onClick={() => setListMenuOpenId(listMenuOpenId === list.id ? null : list.id)} className="p-1 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors"><MoreVerticalIcon className="w-5 h-5" /></button>
+                            {listMenuOpenId === list.id && (
+                              <div className="absolute right-0 top-full mt-1 w-32 bg-white border border-slate-200 rounded-lg shadow-xl z-20 py-1">
+                                <button onClick={() => { setEditingListId(list.id); setEditingListName(list.name); setListMenuOpenId(null); }} className="w-full text-left px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">Đổi tên</button>
+                                <button onClick={() => handleDeleteList(list.id)} className="w-full text-left px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50">Xóa danh sách</button>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 no-scrollbar space-y-4">
@@ -1027,6 +1136,35 @@ const TasklistView: React.FC<{ user: User, allUsers: User[], initialListId?: str
                   </div>
                 );
             })}
+            
+            {/* Add List Button */}
+            <div className="w-80 sm:w-96 shrink-0 snap-center">
+              {isAddingList ? (
+                <div className="bg-white/60 backdrop-blur-xl rounded-2xl shadow-lg border border-white/40 p-4 animate-scale-in">
+                  <form onSubmit={handleAddList} className="flex flex-col gap-3">
+                    <input 
+                      type="text" 
+                      value={newListName} 
+                      onChange={e => setNewListName(e.target.value)} 
+                      placeholder="Nhập tên danh sách..."
+                      className="bg-white border border-slate-200 rounded-lg p-2.5 text-sm font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                        <button type="submit" className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-sm transition-colors shadow-md">Thêm danh sách</button>
+                        <button type="button" onClick={() => { setIsAddingList(false); setNewListName(''); }} className="px-4 py-2 hover:bg-slate-200/50 rounded-lg font-bold text-slate-500 text-sm transition-colors">Hủy</button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <button onClick={() => setIsAddingList(true)} className="w-full flex items-center gap-2 bg-white/40 hover:bg-white/60 backdrop-blur-sm border border-white/40 p-4 rounded-2xl transition-all shadow-sm group">
+                  <div className="w-8 h-8 rounded-full bg-white/60 flex items-center justify-center text-slate-500 group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                    <PlusIcon className="w-5 h-5"/>
+                  </div>
+                  <span className="font-bold text-slate-600 group-hover:text-blue-700">Thêm danh sách mới</span>
+                </button>
+              )}
+            </div>
         </div>
       </div>
       {toastMessage && (
