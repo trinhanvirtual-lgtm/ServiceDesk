@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../App';
 import { useLanguage } from './LanguageContext';
-import { SettingsIcon, FileTextIcon, FolderIcon, FileEditIcon, TrashIcon, PlusIcon, XIcon, CheckCircleIcon, SyncIcon, HomeIcon, LayoutIcon, BriefcaseIcon, BookOpenIcon, ChevronRightIcon, ImageIcon, UsersIcon, MailIcon, LockIcon } from './icons';
+import { SettingsIcon, FileTextIcon, FolderIcon, FileEditIcon, TrashIcon, PlusIcon, XIcon, CheckCircleIcon, SyncIcon, HomeIcon, LayoutIcon, BriefcaseIcon, BookOpenIcon, ChevronRightIcon, ImageIcon, UsersIcon, MailIcon, LockIcon, CheckIcon } from './icons';
 import { db, auth } from '../firebase';
 import { collection, doc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import UserManagementView from './UserManagementView';
@@ -170,6 +170,7 @@ const WebsiteDataView: React.FC<WebsiteDataViewProps> = ({ user, allUsers, onUse
         }
         return;
     }
+    if (!auth.currentUser) return;
     // Determine if Firebase is connected
     const pagesRef = collection(db, 'pages');
     const unsubscribePages = onSnapshot(pagesRef, (snapshot) => {

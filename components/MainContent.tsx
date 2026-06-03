@@ -11,8 +11,8 @@ import { initialMeetings } from './MeetingView';
 import { mockClasses } from './TrainingDashboardView';
 import { SettingsIcon, XIcon, ChevronRightIcon, ChevronUpIcon, ChevronDownIcon, FileTextIcon, GripVerticalIcon, RssIcon, FolderIcon, ChecklistIcon, CalendarIcon, StickyNoteIcon, BookOpenIcon, GraduationCapIcon, MailIcon, ChatIcon } from './icons';
 import { motion, Reorder, AnimatePresence } from 'motion/react';
-import { db } from '../firebase';
-import { collection, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
+import { auth, db } from '../firebase';
+import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Post } from './NewsfeedView';
 
 // --- WIDGET COMPONENTS ---
@@ -44,18 +44,24 @@ const LatestNewsfeedWidget: React.FC<{ onNavigate: () => void }> = ({ onNavigate
     const [latestPost, setLatestPost] = useState<Post | null>(null);
 
     useEffect(() => {
-        const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(5));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            if (!snapshot.empty) {
-                const pinnedPosts = snapshot.docs.filter(d => d.data().isPinned);
-                const postToDisplay = pinnedPosts.length > 0 ? pinnedPosts[0] : snapshot.docs[0];
-                const data = postToDisplay.data();
-                setLatestPost({ id: postToDisplay.id, ...data });
-            } else {
-                setLatestPost(null);
+        if (!auth.currentUser) return;
+        const fetchLatestPost = async () => {
+            try {
+                const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'), limit(5));
+                const snapshot = await getDocs(q);
+                if (!snapshot.empty) {
+                    const pinnedPosts = snapshot.docs.filter(d => d.data().isPinned);
+                    const postToDisplay = pinnedPosts.length > 0 ? pinnedPosts[0] : snapshot.docs[0];
+                    const data = postToDisplay.data();
+                    setLatestPost({ id: postToDisplay.id, ...data } as Post);
+                } else {
+                    setLatestPost(null);
+                }
+            } catch (err) {
+                console.error("Error fetching latest post:", err);
             }
-        });
-        return () => unsubscribe();
+        };
+        fetchLatestPost();
     }, []);
 
     return (
@@ -163,16 +169,22 @@ const LatestArticleWidget: React.FC<{ onNavigate: () => void }> = ({ onNavigate 
     const [latestArticle, setLatestArticle] = useState<{ title: string; authorName: string } | null>(null);
 
     useEffect(() => {
-        const q = query(collection(db, 'blogArticles'), orderBy('createdAt', 'desc'), limit(1));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            if (!snapshot.empty) {
-                const data = snapshot.docs[0].data();
-                setLatestArticle({ title: data.title, authorName: data.authorName });
-            } else {
-                setLatestArticle(null);
+        if (!auth.currentUser) return;
+        const fetchLatestArticle = async () => {
+            try {
+                const q = query(collection(db, 'blogArticles'), orderBy('createdAt', 'desc'), limit(1));
+                const snapshot = await getDocs(q);
+                if (!snapshot.empty) {
+                    const data = snapshot.docs[0].data();
+                    setLatestArticle({ title: data.title, authorName: data.authorName });
+                } else {
+                    setLatestArticle(null);
+                }
+            } catch (err) {
+                console.error("Error fetching latest article:", err);
             }
-        });
-        return () => unsubscribe();
+        };
+        fetchLatestArticle();
     }, []);
 
      return (

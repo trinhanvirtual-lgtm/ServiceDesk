@@ -55,9 +55,38 @@ const RequestsView: React.FC<RequestsViewProps> = ({ user, users }) => {
         });
     };
 
-    const handleSaveRequest = (newRequest: Request) => {
+    const handleSaveRequest = async (newRequest: Request) => {
         setRequests([newRequest, ...requests]);
         setCreateModalOpen(false);
+        showToast('Đã tạo yêu cầu thành công!');
+        
+        try {
+            const approver = users.find(u => u.id === newRequest.approverId);
+            const approverEmail = approver?.email || approver?.id === 'dev-admin' ? 'admin@example.com' : 'approver@example.com'; 
+            
+            await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to: approverEmail,
+                    subject: `Yêu cầu mới cần phê duyệt: ${newRequest.title}`,
+                    html: `
+                        <div style="font-family: sans-serif; padding: 20px; color: #333;">
+                            <h2 style="color: #4f46e5;">Có yêu cầu mới cần phê duyệt</h2>
+                            <p><strong>Từ:</strong> ${newRequest.authorName}</p>
+                            <p><strong>Tiêu đề:</strong> ${newRequest.title}</p>
+                            <p><strong>Nội dung:</strong></p>
+                            <div style="background: #f3f4f6; padding: 10px; border-radius: 8px;">
+                                ${newRequest.content}
+                            </div>
+                            <p style="margin-top: 20px;">Vui lòng đăng nhập vào hệ thống để phê duyệt phiếu này.</p>
+                        </div>
+                    `
+                })
+            });
+        } catch (error) {
+            console.error("Failed to send email notification", error);
+        }
     };
 
     const handleUpdateStatus = (id: string, status: 'approved' | 'rejected') => {

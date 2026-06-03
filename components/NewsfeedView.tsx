@@ -111,20 +111,23 @@ export interface Post {
         role: string;
     };
     backgroundGradient?: string;
+    backgroundColor?: string;
+    backgroundImage?: string;
+    backgroundTextColor?: string;
 }
 
 // --- CONFIGS ---
 const postTypeConfig: Record<PostType, { label: string; icon: React.ReactNode; color: string; }> = {
-    announcement: { label: 'Thông báo', icon: <MegaphoneIconLc className="w-4 h-4" />, color: 'bg-orange-500' },
-    idea: { label: 'Ý tưởng', icon: <LightbulbIconLc className="w-4 h-4" />, color: 'bg-yellow-500' },
+    announcement: { label: 'Thông báo mới', icon: <MegaphoneIconLc className="w-4 h-4" />, color: 'bg-orange-500' },
+    idea: { label: 'Chia sẻ một ý tưởng', icon: <LightbulbIconLc className="w-4 h-4" />, color: 'bg-yellow-500' },
     document: { label: 'Tài liệu', icon: <FileTextIcon className="w-4 h-4" />, color: 'bg-blue-500' },
     celebration: { label: 'Chúc mừng', icon: <GiftIcon className="w-4 h-4" />, color: 'bg-pink-500' },
     media: { label: 'Hình ảnh/Video', icon: <ImageIcon className="w-4 h-4" />, color: 'bg-green-500' },
     quick: { label: 'Cập nhật nhanh', icon: <ZapIconLc className="w-4 h-4" />, color: 'bg-cyan-500' },
-    styled: { label: 'Styled', icon: <SparklesIcon className="w-4 h-4" />, color: 'bg-gradient-to-r from-purple-500 to-pink-500' },
-    welcome: { label: 'Chào đón', icon: <HeartIconLc className="w-4 h-4" />, color: 'bg-teal-500' },
+    styled: { label: 'Mẫu màu phong cách', icon: <SparklesIcon className="w-4 h-4" />, color: 'bg-gradient-to-r from-purple-500 to-pink-500' },
+    welcome: { label: 'Chào đón thành viên', icon: <HeartIconLc className="w-4 h-4" />, color: 'bg-teal-500' },
     poll: { label: 'Bình chọn', icon: <BarChartIconLc className="w-4 h-4" />, color: 'bg-indigo-500' },
-    discussion: { label: 'Thảo luận', icon: <MessageCircleIconLc className="w-4 h-4" />, color: 'bg-violet-500' },
+    discussion: { label: 'Thảo luận mới', icon: <MessageCircleIconLc className="w-4 h-4" />, color: 'bg-violet-500' },
     event: { label: 'Sự kiện', icon: <CalendarIconLc className="w-4 h-4" />, color: 'bg-emerald-500' },
     kudos: { label: 'Khen thưởng', icon: <TrophyIconLc className="w-4 h-4" />, color: 'bg-rose-500' },
 };
@@ -277,13 +280,27 @@ const PostCard: React.FC<{
             </div>
 
             {/* Post CONTENT rendering based on background or gradient styling */}
-            {post.type === 'styled' && post.backgroundGradient ? (
+            {(post.backgroundGradient || post.backgroundColor || post.backgroundImage) ? (
                 <div 
-                    className="mt-4 p-8 text-center rounded-2xl shadow-inner text-white font-extrabold text-lg flex items-center justify-center relative overflow-hidden"
-                    style={{ background: post.backgroundGradient, minHeight: '130px' }}
+                    className="mt-4 p-8 text-center rounded-2xl shadow-lg font-extrabold text-base sm:text-lg flex flex-col items-center justify-center relative overflow-hidden min-h-[140px]"
+                    style={{ 
+                        background: post.backgroundGradient 
+                            ? post.backgroundGradient 
+                            : (post.backgroundColor ? post.backgroundColor : undefined),
+                        backgroundImage: post.backgroundImage ? `url(${post.backgroundImage})` : undefined,
+                        backgroundSize: post.backgroundImage ? 'cover' : undefined,
+                        backgroundPosition: post.backgroundImage ? 'center' : undefined,
+                        color: post.backgroundTextColor || '#ffffff'
+                    }}
                 >
-                    <div className="absolute -top-10 -left-10 w-24 h-24 bg-white/10 rounded-full blur-xl" />
-                    <p className="whitespace-pre-wrap leading-relaxed drop-shadow-md z-10">{post.content}</p>
+                    {/* Subtle overlay layer if there's a background image to make text pop */}
+                    {post.backgroundImage && (
+                        <div className="absolute inset-0 bg-black/50 backdrop-blur-[0.5px] z-0 pointer-events-none" />
+                    )}
+                    <div className="absolute -top-10 -left-10 w-24 h-24 bg-white/10 rounded-full blur-xl z-0" />
+                    <p className="whitespace-pre-wrap leading-relaxed drop-shadow-md z-10 font-bold relative text-white">
+                        {post.content}
+                    </p>
                 </div>
             ) : (
                 <div className="mt-4 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
@@ -526,21 +543,21 @@ const PostComposer: React.FC<{
 
     const composerActions: { type: PostType; label: string; icon: React.ReactNode; color: string }[] = [
         { type: 'quick', label: 'Cập nhật nhanh', icon: <MessageSquareIconLc className="w-4 h-4 text-cyan-500" />, color: 'hover:bg-cyan-50 dark:hover:bg-cyan-950/20' },
-        { type: 'announcement', label: 'Thông báo', icon: <MegaphoneIconLc className="w-4 h-4 text-orange-500" />, color: 'hover:bg-orange-50 dark:hover:bg-orange-950/20' },
-        { type: 'poll', label: 'Tạo một bình chọn', icon: <BarChartIconLc className="w-4 h-4 text-indigo-500" />, color: 'hover:bg-indigo-50 dark:hover:bg-indigo-950/20' },
-        { type: 'event', label: 'Tạo một sự kiện', icon: <CalendarIconLc className="w-4 h-4 text-emerald-500" />, color: 'hover:bg-emerald-50 dark:hover:bg-emerald-950/20' },
+        { type: 'announcement', label: 'Thông báo mới', icon: <MegaphoneIconLc className="w-4 h-4 text-orange-500" />, color: 'hover:bg-orange-50 dark:hover:bg-orange-950/20' },
+        { type: 'poll', label: 'Bình chọn', icon: <BarChartIconLc className="w-4 h-4 text-indigo-500" />, color: 'hover:bg-indigo-50 dark:hover:bg-indigo-950/20' },
+        { type: 'event', label: 'Sự kiện', icon: <CalendarIconLc className="w-4 h-4 text-emerald-500" />, color: 'hover:bg-emerald-50 dark:hover:bg-emerald-950/20' },
     ];
 
     const dropdownActions: { type: PostType; label: string; icon: React.ReactNode }[] = [
         { type: 'quick', label: 'Cập nhật nhanh', icon: <MessageSquareIconLc className="w-4 h-4 text-cyan-500" /> },
-        { type: 'styled', label: 'Styled update', icon: <SparklesIcon className="w-4 h-4 text-pink-500" /> },
-        { type: 'announcement', label: 'Tạo thông báo mới', icon: <MegaphoneIconLc className="w-4 h-4 text-orange-500" /> },
-        { type: 'welcome', label: 'Chào đón thành viên mới', icon: <HeartIconLc className="w-4 h-4 text-rose-500" /> },
+        { type: 'announcement', label: 'Thông báo mới', icon: <MegaphoneIconLc className="w-4 h-4 text-orange-500" /> },
+        { type: 'welcome', label: 'Chào đón thành viên', icon: <HeartIconLc className="w-4 h-4 text-rose-500" /> },
         { type: 'idea', label: 'Chia sẻ một ý tưởng', icon: <LightbulbIconLc className="w-4 h-4 text-yellow-500" /> },
-        { type: 'poll', label: 'Tạo một bình chọn', icon: <BarChartIconLc className="w-4 h-4 text-indigo-500" /> },
-        { type: 'discussion', label: 'Tạo thảo luận mới', icon: <MessageCircleIconLc className="w-4 h-4 text-sky-500" /> },
-        { type: 'event', label: 'Tạo một sự kiện', icon: <CalendarIconLc className="w-4 h-4 text-emerald-500" /> },
-        { type: 'kudos', label: 'Tạo khen thưởng mới', icon: <TrophyIconLc className="w-4 h-4 text-red-500" /> },
+        { type: 'poll', label: 'Bình chọn', icon: <BarChartIconLc className="w-4 h-4 text-indigo-500" /> },
+        { type: 'discussion', label: 'Thảo luận mới', icon: <MessageCircleIconLc className="w-4 h-4 text-sky-500" /> },
+        { type: 'event', label: 'Sự kiện', icon: <CalendarIconLc className="w-4 h-4 text-emerald-500" /> },
+        { type: 'kudos', label: 'Khen thưởng', icon: <TrophyIconLc className="w-4 h-4 text-red-500" /> },
+        { type: 'styled', label: 'Cập nhật Styled', icon: <SparklesIcon className="w-4 h-4 text-pink-500" /> },
     ];
 
     return (
@@ -638,6 +655,7 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
     const [searchResults, setSearchResults] = useState<string[] | null>(null);
     const [isSearchingAI, setIsSearchingAI] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
     
     // To feed pre-selected custom types directly from action buttons into CreatePostModal
     const [composerInitialType, setComposerInitialType] = useState<PostType>('quick');
@@ -720,6 +738,8 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
             return;
         }
 
+        if (!auth.currentUser) return;
+        
         const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const fetchedPosts = snapshot.docs.map(doc => {
@@ -922,9 +942,19 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
     };
 
     const FilterButton: React.FC<{ type: FilterType, icon: React.ReactNode, label: string }> = ({ type, icon, label }) => (
-        <button onClick={() => setFilter(type)} className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold transition-all ${filter === type ? 'bg-[--color-accent-500]/10 text-[--color-accent-600] dark:text-[--color-accent-400] shadow-sm' : 'text-[--color-text-secondary] hover:bg-white/60 dark:hover:bg-slate-800/40'}`}>
-            {icon}
-            <span className="text-xs">{label}</span>
+        <button 
+            onClick={() => setFilter(type)} 
+            className={`w-full flex items-center rounded-xl font-bold transition-all ${
+                isSidebarCollapsed ? 'justify-center p-3' : 'gap-3 px-3.5 py-2.5'
+            } ${
+                filter === type 
+                    ? 'bg-[--color-accent-500]/10 text-[--color-accent-600] dark:text-[--color-accent-400] shadow-sm' 
+                    : 'text-[--color-text-secondary] hover:bg-white/60 dark:hover:bg-slate-800/40'
+            }`}
+            title={label}
+        >
+            <div className="shrink-0 flex items-center justify-center w-5 h-5">{icon}</div>
+            {!isSidebarCollapsed && <span className="text-xs whitespace-nowrap">{label}</span>}
         </button>
     );
 
@@ -936,19 +966,39 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
                 </div>
                 
                 <div className="flex-1 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl rounded-xl shadow-lg overflow-hidden flex min-h-0 border border-slate-100 dark:border-slate-800">
-                    {/* Left Sidebar for Filters */}
-                    <aside className="w-64 hidden lg:flex flex-col border-r border-slate-100 dark:border-slate-800/80 bg-white/20 dark:bg-slate-900/10 shrink-0">
-                        <div className="p-4 flex flex-col gap-4">
+                    {/* Left Sidebar for Filters (Default Collapsed Icon-only) */}
+                    <aside className={`hidden lg:flex flex-col border-r border-slate-100 dark:border-slate-800/80 bg-white/20 dark:bg-slate-900/10 shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'w-16' : 'w-64'}`}>
+                        {/* Collapse/Expand Toggle */}
+                        <div className="p-3 border-b border-slate-100 dark:border-slate-800/80 flex justify-center">
+                            <button 
+                                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                                className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-500 transition-colors"
+                                title={isSidebarCollapsed ? "Mở rộng danh mục" : "Thu gọn chỉ hiện icon"}
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                    {isSidebarCollapsed ? (
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                                    ) : (
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                                    )}
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div className="p-3 flex flex-col gap-4 overflow-y-auto no-scrollbar">
                             <button 
                                 onClick={handleManualRefresh}
                                 disabled={isRefreshing}
-                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-xl font-bold text-xs transition-colors shadow-md active:scale-95 disabled:opacity-50"
+                                className={`flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white rounded-xl font-bold transition-all shadow-md active:scale-95 disabled:opacity-50 ${
+                                    isSidebarCollapsed ? 'p-3 w-10 h-10 mx-auto' : 'w-full px-4 py-2.5 text-xs gap-2'
+                                }`}
+                                title={isSidebarCollapsed ? "Làm mới bảng tin" : undefined}
                             >
-                                <SyncIcon className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                                <span>{isRefreshing ? 'Đang tải...' : 'Làm mới bảng tin'}</span>
+                                <SyncIcon className={`w-4 h-4 shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                {!isSidebarCollapsed && <span>{isRefreshing ? 'Đang tải...' : 'Làm mới bảng tin'}</span>}
                             </button>
                             
-                            <div className="w-full border-t border-slate-200/50 dark:border-slate-805"></div>
+                            <div className="w-full border-t border-slate-200/50 dark:border-slate-800/80"></div>
                             
                             <div className="flex flex-col gap-1">
                                 <FilterButton type="all" icon={<ListIcon className="w-4.5 h-4.5"/>} label="Tất cả bài viết" />
@@ -957,8 +1007,12 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
                                 <FilterButton type="saved" icon={<BookmarkIcon className="w-4.5 h-4.5"/>} label="Đã lưu" />
                             </div>
                             
-                            <div className="w-full border-t border-slate-200/50 dark:border-slate-805"></div>
-                            <p className="px-2.5 text-[10px] font-extrabold uppercase tracking-widest text-[--color-text-subtle] opacity-75">Không gian làm việc</p>
+                            <div className="w-full border-t border-slate-200/50 dark:border-slate-800/80"></div>
+                            {!isSidebarCollapsed ? (
+                                <p className="px-2.5 text-[10px] font-extrabold uppercase tracking-widest text-[--color-text-subtle] opacity-75">Không gian làm việc</p>
+                            ) : (
+                                <div className="h-px bg-slate-200/50 dark:bg-slate-800/80 mx-2" />
+                            )}
                             <div className="flex flex-col gap-1">
                                 <FilterButton type="all" icon={<UsersIconLc className="w-4 h-4 text-cyan-500" />} label="Toàn công ty" />
                                 <FilterButton type="all" icon={<UsersIconLc className="w-4 h-4 text-indigo-500" />} label="Team Marketing" />
@@ -1028,19 +1082,20 @@ const NewsfeedView: React.FC<NewsfeedViewProps> = ({ user }) => {
                             initialType={composerInitialType}
                         />
 
-                        {/* Standard Social Feed items */}
-                        <div className="space-y-4">
+                        {/* Pinterest Masonry Layout */}
+                        <div className="columns-1 sm:columns-2 xl:columns-3 gap-5 [column-fill:_balance] w-full pb-8">
                            {filteredPosts.map(post => (
-                               <PostCard 
-                                   key={post.id} 
-                                   post={post} 
-                                   user={user}
-                                   onTogglePin={handleTogglePin} 
-                                   onToggleSave={handleToggleSave} 
-                                   onUpdatePost={handleUpdatePost} 
-                                   onVotePoll={handleVotePoll}
-                                   onJoinEvent={handleJoinEvent}
-                               />
+                               <div key={post.id} className="break-inside-avoid mb-5">
+                                   <PostCard 
+                                       post={post} 
+                                       user={user}
+                                       onTogglePin={handleTogglePin} 
+                                       onToggleSave={handleToggleSave} 
+                                       onUpdatePost={handleUpdatePost} 
+                                       onVotePoll={handleVotePoll}
+                                       onJoinEvent={handleJoinEvent}
+                                   />
+                               </div>
                            ))}
                         </div>
                     </div>

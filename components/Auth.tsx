@@ -47,9 +47,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     
     try {
       const provider = new GoogleAuthProvider();
+      provider.addScope('https://www.googleapis.com/auth/calendar.events');
+      provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
+      provider.addScope('https://www.googleapis.com/auth/gmail.readonly');
       provider.setCustomParameters({ prompt: 'select_account' });
       
       const result = await signInWithPopup(auth, provider);
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential?.accessToken) {
+          (window as unknown as { _googleAccessToken?: string })._googleAccessToken = credential.accessToken;
+      }
       const googleUser = result.user;
       
       // Check if user exists in Firestore

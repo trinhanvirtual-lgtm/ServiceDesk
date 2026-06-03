@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-    SearchIcon, BellIcon, MenuIcon, LogoIcon, ChatIcon, MailIcon
+    SearchIcon, BellIcon, MenuIcon, LogoIcon, ChatIcon, MailIcon, GlobeIcon
 } from './icons';
 import WeatherClock from './WeatherClock';
 import { User, View } from '../App';
@@ -24,12 +24,12 @@ interface TopSidebarProps {
 }
 
 interface SearchResults {
-  articles: unknown[];
-  files: unknown[];
-  contacts: unknown[];
-  tasks: unknown[];
-  events: unknown[];
-  messages: unknown[];
+  articles?: unknown[];
+  files?: unknown[];
+  contacts?: unknown[];
+  tasks?: unknown[];
+  events?: unknown[];
+  messages?: unknown[];
   empty?: boolean;
 }
 
@@ -38,7 +38,7 @@ const TopSidebar: React.FC<TopSidebarProps> = ({ user, onLogout, onNotificationC
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLFormElement>(null);
 
   const performSearch = (query: string) => {
       if (!query) {
@@ -127,6 +127,15 @@ const TopSidebar: React.FC<TopSidebarProps> = ({ user, onLogout, onNotificationC
         </form>
       </div>
       <div className="hidden md:flex items-center gap-2">
+        {(user.role === 'superadmin' || user.role === 'admin') && (
+          <button 
+            onClick={() => onNavigate('website-data')}
+            className="p-2 rounded-full hover:bg-[--color-surface-secondary] transition-colors text-sky-500"
+            title="Quản trị website"
+          >
+            <GlobeIcon className="w-5 h-5" />
+          </button>
+        )}
         <button 
           onClick={() => onNavigate('email')}
           className="p-2 rounded-full hover:bg-[--color-surface-secondary] transition-colors text-red-500"
@@ -168,6 +177,15 @@ const TopSidebar: React.FC<TopSidebarProps> = ({ user, onLogout, onNotificationC
         </div>
 
         <div className="flex items-center gap-1">
+            {(user.role === 'superadmin' || user.role === 'admin') && (
+              <button 
+                onClick={() => onNavigate('website-data')}
+                className="p-2 rounded-full hover:bg-[--color-surface-secondary] transition-colors text-sky-500"
+                title="Quản trị website"
+              >
+                <GlobeIcon className="w-6 h-6" />
+              </button>
+            )}
             <button 
               onClick={() => onNavigate('email')}
               className="p-2 rounded-full hover:bg-[--color-surface-secondary] transition-colors text-red-500"

@@ -36,17 +36,34 @@ interface ContactsViewProps {
 const ContactsView: React.FC<ContactsViewProps> = ({ onItemViewed, onNavigate }) => {
     const [view, setView] = useState<'card' | 'list' | 'org'>('card');
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedDept, setSelectedDept] = useState<string>('all');
     const [contacts, setContacts] = useState<Contact[]>(initialContacts);
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const { t } = useLanguage();
     const fileInputRef = useRef<HTMLInputElement>(null);
     
-    const filteredContacts = useMemo(() =>
-        contacts.filter(c =>
-            c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.department.toLowerCase().includes(searchTerm.toLowerCase())
-        ), [searchTerm, contacts]);
+    const departmentsList = useMemo(() => {
+        const depts = new Set<string>();
+        contacts.forEach(c => {
+            if (c.department) depts.add(c.department);
+        });
+        return Array.from(depts);
+    }, [contacts]);
+
+    const filteredContacts = useMemo(() => {
+        return contacts.filter(c => {
+            const matchesSearch = 
+                c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                c.department.toLowerCase().includes(searchTerm.toLowerCase());
+            
+            const matchesDept = 
+                selectedDept === 'all' || 
+                c.department === selectedDept;
+
+            return matchesSearch && matchesDept;
+        });
+    }, [searchTerm, selectedDept, contacts]);
         
     const handleSaveContact = (newContact: Contact) => {
         setContacts(prevContacts => [newContact, ...prevContacts]);
@@ -114,35 +131,30 @@ const ContactsView: React.FC<ContactsViewProps> = ({ onItemViewed, onNavigate })
             <div className="flex-1 flex flex-col gap-3 overflow-y-auto no-scrollbar">
                 <ContactsBanner />
                 <div className="flex-1 bg-white/40 backdrop-blur-xl rounded-xl shadow-lg overflow-hidden flex min-h-0">
-                    {/* Left Pane */}
-                    <div className="w-full sm:w-1/4 sm:max-w-[280px] border-r border-white/50 flex-col hidden sm:flex">
-                        <div className="p-4 border-b border-white/50 shrink-0">
-                            <div className="flex justify-between items-center">
-                                <h2 className="text-xl font-bold text-slate-800">Danh bạ</h2>
-                            </div>
-                        </div>
-                        <div className="flex-1 overflow-y-auto no-scrollbar p-2 space-y-1">
-                            <button onClick={() => setView('card')} className={`w-full text-left px-4 py-2.5 rounded-lg font-semibold flex items-center gap-3 transition-colors ${(view === 'card' || view === 'list') ? 'bg-white/80 text-purple-700' : 'text-slate-600 hover:bg-white/50'}`}>
-                                <UsersIcon className="w-5 h-5" /><span>{t('allContacts')}</span>
-                            </button>
-                            <button onClick={() => setView('org')} className={`w-full text-left px-4 py-2.5 rounded-lg font-medium flex items-center gap-3 transition-colors ${view === 'org' ? 'bg-white/80 text-purple-700' : 'text-slate-600 hover:bg-white/50'}`}>
-                                <SitemapIcon className="w-5 h-5" /><span>{t('orgChart')}</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Right Pane */}
+                    {/* Right Pane (Now takes full width because Left Menu is removed) */}
                     <div className="flex-1 flex flex-col min-w-0">
-                        <div className="p-4 border-b border-white/50 shrink-0 flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div className="relative flex-1 w-full sm:max-w-lg">
-                                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                                <input
-                                    type="text"
-                                    value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
-                                    placeholder={t('searchContactsPlaceholder')}
-                                    className="w-full bg-white/60 border border-slate-300/60 focus:bg-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none placeholder-slate-500 text-slate-800 rounded-lg py-2 pl-10 pr-4 transition-all"
-                                />
+                        <div className="p-4 border-b border-white/50 shrink-0 flex flex-col lg:flex-row items-center justify-between gap-4">
+                            <div className="flex flex-col sm:flex-row items-center gap-3 flex-1 w-full sm:max-w-xl">
+                                <div className="relative flex-1 w-full">
+                                    <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                                    <input
+                                        type="text"
+                                        value={searchTerm}
+                                        onChange={e => setSearchTerm(e.target.value)}
+                                        placeholder={t('searchContactsPlaceholder') || "Tìm kiếm danh bạ..."}
+                                        className="w-full bg-white/65 border border-slate-300/60 focus:bg-white focus:border-purple-500 focus:ring-1 focus:ring-purple-500 focus:outline-none placeholder-slate-500 text-slate-800 rounded-lg py-2 pl-10 pr-4 transition-all"
+                                    />
+                                </div>
+                                <select
+                                    value={selectedDept}
+                                    onChange={e => setSelectedDept(e.target.value)}
+                                    className="w-full sm:w-56 bg-white/70 border border-slate-300/60 font-semibold text-slate-750 text-xs rounded-lg py-2.5 px-3 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                                >
+                                    <option value="all">Tất cả phòng ban</option>
+                                    {departmentsList.map(dept => (
+                                        <option key={dept} value={dept}>{dept}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="bg-white/50 p-1 rounded-lg flex items-center text-sm font-semibold">

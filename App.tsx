@@ -24,9 +24,11 @@ import ClassDetailView from './components/ClassDetailView';
 import SettingsView from './components/SettingsView';
 import CheckInView from './components/CheckInView';
 import UserManagementView from './components/UserManagementView';
+import OrgChartView from './components/OrgChartView';
 import RequestsView from './components/RequestsView';
 import WebsiteDataView from './components/WebsiteDataView';
 import ProjectManagementView from './components/ProjectManagementView';
+import ProcessWorkflowView from './components/ProcessWorkflowView';
 import { FolderIcon, StickyNoteIcon, ChecklistIcon, MailIcon, CalendarIcon, GraduationCapIcon, BloggerIcon, ChatIcon, VideoIcon, IconProps } from './components/icons';
 import EventModal from './components/EventModal';
 import MobileBottomNav from './components/MobileBottomNav';
@@ -60,7 +62,7 @@ export interface User {
   googleEmail?: string;
 }
 
-export type View = 'dashboard' | 'drive' | 'meeting' | 'tasklist' | 'contacts' | 'calendar' | 'notes' | 'blog' | 'blog-article' | 'email' | 'chat' | 'newsfeed' | 'tasks' | 'new-blog-post' | 'training' | 'class-detail' | 'settings' | 'check-in' | 'user-management' | 'requests' | 'website-data' | 'projects' | 'team-chat';
+export type View = 'dashboard' | 'drive' | 'meeting' | 'tasklist' | 'contacts' | 'calendar' | 'notes' | 'blog' | 'blog-article' | 'email' | 'chat' | 'newsfeed' | 'tasks' | 'new-blog-post' | 'training' | 'class-detail' | 'settings' | 'check-in' | 'user-management' | 'requests' | 'website-data' | 'projects' | 'team-chat' | 'org-chart' | 'process';
 
 export type ServiceName = 'Drive' | 'Keep' | 'Tasks' | 'Gmail' | 'Calendar' | 'Classroom' | 'Blogger' | 'Chat' | 'Meet';
 
@@ -491,6 +493,10 @@ const AppContent: React.FC = () => {
         return <ProjectManagementView user={user} onNavigateToTasks={handleNavigateToTasks} onSendNotification={handleSendNotification} />;
       case 'user-management':
         return <UserManagementView currentUser={user} users={allUsers} onUsersChange={handleUsersChange} />;
+      case 'org-chart':
+        return <OrgChartView user={user} allUsers={allUsers} />;
+      case 'process':
+        return <ProcessWorkflowView user={user} onNavigate={handleNavigate} />;
       case 'drive':
         return <DriveView user={user} onItemViewed={handleItemViewed} />;
       case 'meeting':
@@ -607,7 +613,6 @@ const AppContent: React.FC = () => {
         />
         <div className="flex flex-1 min-h-0">
           <LeftSidebar 
-            user={user}
             isCollapsed={isLeftSidebarCollapsed}
             isMobileOpen={isMobileNavOpen}
             onClose={() => setMobileNavOpen(false)}

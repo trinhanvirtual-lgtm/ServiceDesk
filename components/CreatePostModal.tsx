@@ -26,13 +26,25 @@ interface CreatePostModalProps {
     initialType?: PostType;
 }
 
+const solidColors = [
+  { name: 'Sáng trong veo', css: '#f8fafc', text: '#0f172a' },
+  { name: 'Vàng nắng', css: '#fef08a', text: '#854d0e' },
+  { name: 'Mát lành bạc hà', css: '#bbf7d0', text: '#166534' },
+  { name: 'Đào phấn hồng', css: '#fbcfe8', text: '#9d174d' },
+  { name: 'Đỏ hoàng gia', css: '#fee2e2', text: '#991b1b' },
+  { name: 'Xanh thanh thản', css: '#ccfbf1', text: '#115e59' },
+  { name: 'Phấn xanh', css: '#bfdbfe', text: '#1e40af' },
+  { name: 'Nho tím nhạt', css: '#f3e8ff', text: '#6b21a8' },
+];
+
 const gradients = [
-  { name: 'Peach Sunset', css: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)' },
-  { name: 'Purple Dream', css: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
-  { name: 'Warm Flame', css: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 99%, #fecfef 100%)' },
-  { name: 'Jade Coast', css: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' },
-  { name: 'Royal Velvet', css: 'linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)' },
-  { name: 'Cosmic Coral', css: 'linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%)' },
+  { name: 'Đào rực rỡ', css: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)', text: '#5c1d40' },
+  { name: 'Vũ trụ đêm', css: 'linear-gradient(135deg, #2c3e50 0%, #3498db 100%)', text: '#ffffff' },
+  { name: 'Phép thuật Lavender', css: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', text: '#ffffff' },
+  { name: 'Rừng nhiệt đới', css: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)', text: '#ffffff' },
+  { name: 'Biển xanh thẳm', css: 'linear-gradient(120deg, #1e3c72 0%, #2a5298 100%)', text: '#ffffff' },
+  { name: 'Chanh sảng khoái', css: 'linear-gradient(135deg, #fef08a 0%, #f97316 100%)', text: '#ffffff' },
+  { name: 'Hồng phi lê', css: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)', text: '#ffffff' },
 ];
 
 const kudosBadges = [
@@ -67,6 +79,10 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ user, isOpen, onClose
     const [welcomeRole, setWelcomeRole] = useState('');
     
     const [bgGradient, setBgGradient] = useState<string>('');
+    const [bgColor, setBgColor] = useState<string>('');
+    const [bgImage, setBgImage] = useState<string>('');
+    const [bgTextColor, setBgTextColor] = useState<string>('');
+    const backgroundUploadRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -95,6 +111,9 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ user, isOpen, onClose
             setWelcomeName('');
             setWelcomeRole('');
             setBgGradient('');
+            setBgColor('');
+            setBgImage('');
+            setBgTextColor('');
         }
     }, [isOpen, initialType]);
 
@@ -145,6 +164,11 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ user, isOpen, onClose
             feeling: '',
             location: '',
         };
+
+        if (bgColor) payload.backgroundColor = bgColor;
+        if (bgGradient) payload.backgroundGradient = bgGradient;
+        if (bgImage) payload.backgroundImage = bgImage;
+        if (bgTextColor) payload.backgroundTextColor = bgTextColor;
 
         if (imageUrl.trim()) {
             payload.image = imageUrl.trim();
@@ -226,15 +250,15 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ user, isOpen, onClose
     };
 
     const postTypes: { value: PostType; label: string; icon: React.ReactNode; color: string }[] = [
-        { value: 'quick', label: 'Cập nhật', icon: <Zap className="w-4 h-4" />, color: 'text-purple-500' },
-        { value: 'styled', label: 'Styled', icon: <Sparkles className="w-4 h-4" />, color: 'text-pink-500' },
-        { value: 'announcement', label: 'Thông báo', icon: <Megaphone className="w-4 h-4" />, color: 'text-orange-500' },
-        { value: 'welcome', label: 'Chào đón', icon: <Heart className="w-4 h-4" />, color: 'text-teal-500' },
-        { value: 'idea', label: 'Ý tưởng', icon: <Lightbulb className="w-4 h-4" />, color: 'text-yellow-500' },
+        { value: 'quick', label: 'Cập nhật nhanh', icon: <Zap className="w-4 h-4" />, color: 'text-purple-500' },
+        { value: 'announcement', label: 'Thông báo mới', icon: <Megaphone className="w-4 h-4" />, color: 'text-orange-500' },
+        { value: 'welcome', label: 'Chào đón thành viên', icon: <Heart className="w-4 h-4" />, color: 'text-teal-500' },
+        { value: 'idea', label: 'Chia sẻ một ý tưởng', icon: <Lightbulb className="w-4 h-4" />, color: 'text-yellow-500' },
         { value: 'poll', label: 'Bình chọn', icon: <BarChart3 className="w-4 h-4" />, color: 'text-indigo-500' },
-        { value: 'discussion', label: 'Thảo luận', icon: <MessageCircle className="w-4 h-4" />, color: 'text-sky-500' },
+        { value: 'discussion', label: 'Thảo luận mới', icon: <MessageCircle className="w-4 h-4" />, color: 'text-sky-500' },
         { value: 'event', label: 'Sự kiện', icon: <Calendar className="w-4 h-4" />, color: 'text-emerald-500' },
         { value: 'kudos', label: 'Khen thưởng', icon: <Trophy className="w-4 h-4" />, color: 'text-red-500' },
+        { value: 'styled', label: 'Mẫu màu phong cách', icon: <Sparkles className="w-4 h-4" />, color: 'text-pink-500' },
     ];
 
     return (
@@ -271,39 +295,206 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ user, isOpen, onClose
                     </div>
 
                     {/* Standard Content Text Box */}
-                    <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Chia sẻ nội dung</label>
-                        <textarea
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            placeholder={t('whatAreYouThinking', { userName: user.name.split(' ')[0] }) + "..."}
-                            className={`w-full p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:text-white transition duration-200 ${
-                                type === 'styled' && bgGradient ? 'text-center font-bold text-lg text-white shadow-inner py-8 px-4 rounded-xl min-h-[140px]' : 'h-24'
-                            }`}
-                            style={type === 'styled' && bgGradient ? { background: bgGradient } : {}}
-                        />
+                    <div className="space-y-1 bg-slate-100/10 dark:bg-slate-950/20 p-1 rounded-2xl">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Chia sẻ nội dung</label>
+                        <div className="relative rounded-xl overflow-hidden">
+                            {bgImage && (
+                                <div 
+                                    className="absolute inset-0 bg-cover bg-center transition-all duration-300 scale-102 blur-[0.2px]"
+                                    style={{ backgroundImage: `url(${bgImage})` }}
+                                />
+                            )}
+                            {bgImage && (
+                                <div className="absolute inset-0 bg-black/45 backdrop-blur-[0.5px]" />
+                            )}
+                            <textarea
+                                value={content}
+                                onChange={(e) => setContent(e.target.value)}
+                                placeholder={t('whatAreYouThinking', { userName: user.name.split(' ')[0] }) + "..."}
+                                className={`w-full p-4 bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 transition duration-200 relative z-10 ${
+                                    bgGradient || bgColor || bgImage 
+                                    ? 'text-center font-bold text-base sm:text-lg text-white shadow-inner py-10 px-4 min-h-[160px] bg-transparent border-transparent focus:ring-0 placeholder:text-white/70' 
+                                    : 'h-24 dark:text-white'
+                                }`}
+                                style={{
+                                    background: bgGradient ? bgGradient : (bgColor ? bgColor : undefined),
+                                    color: (bgGradient || bgColor || bgImage) ? (bgTextColor || '#ffffff') : undefined
+                                }}
+                            />
+                        </div>
                     </div>
 
                     {/* DYNAMIC COMPONENT INPUT BLOCKS */}
-                    
-                    {/* Type 1: Styled message colors */}
-                    {type === 'styled' && (
-                        <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl space-y-2">
-                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Chọn kiểu dải màu nền</label>
-                            <div className="flex gap-2 flex-wrap">
-                                {gradients.map((g, idx) => (
-                                    <button
-                                        key={idx}
-                                        type="button"
-                                        onClick={() => setBgGradient(g.css)}
-                                        className={`w-10 h-10 rounded-lg hover:scale-105 transition-all shadow-sm ${bgGradient === g.css ? 'ring-4 ring-offset-2 ring-cyan-500' : ''}`}
-                                        style={{ background: g.css }}
-                                        title={g.name}
-                                    />
-                                ))}
-                            </div>
+
+                    {/* Thiết lập hình màu & hình nền nổi bật */}
+                    <div className="p-4 bg-slate-50 dark:bg-slate-950 border border-slate-205 dark:border-slate-800/80 rounded-xl space-y-3">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                            🎨 Thiết lập hình màu & hình nền bài viết
+                        </label>
+                        
+                        {/* Selector Tabs for Background Style */}
+                        <div className="flex flex-wrap gap-1.5 border-b border-slate-200 dark:border-slate-800 pb-2.5">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setBgGradient('');
+                                    setBgColor('');
+                                    setBgImage('');
+                                    setBgTextColor('');
+                                }}
+                                className={`px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide rounded-md transition duration-150 whitespace-nowrap ${
+                                    !bgGradient && !bgColor && !bgImage 
+                                    ? 'bg-slate-900 text-white dark:bg-slate-800' 
+                                    : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800'
+                                }`}
+                            >
+                                Mặc định
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setBgGradient('');
+                                    setBgImage('');
+                                    setBgColor('#fef08a');
+                                    setBgTextColor('#854d0e');
+                                }}
+                                className={`px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide rounded-md transition duration-150 whitespace-nowrap ${
+                                    bgColor 
+                                    ? 'bg-slate-900 text-white dark:bg-slate-800' 
+                                    : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800'
+                                }`}
+                            >
+                                Hình màu sắc đơn
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setBgColor('');
+                                    setBgImage('');
+                                    setBgGradient('linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)');
+                                    setBgTextColor('#5c1d40');
+                                }}
+                                className={`px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide rounded-md transition duration-150 whitespace-nowrap ${
+                                    bgGradient 
+                                    ? 'bg-slate-900 text-white dark:bg-slate-800' 
+                                    : 'bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800'
+                                }`}
+                            >
+                                Dải màu Gradient
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    backgroundUploadRef.current?.click();
+                                }}
+                                className={`px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide rounded-md transition duration-150 whitespace-nowrap border flex items-center gap-1.5 ${
+                                    bgImage 
+                                    ? 'bg-slate-900 text-white dark:bg-slate-800 border-transparent' 
+                                    : 'bg-white hover:bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800'
+                                }`}
+                            >
+                                🖼️ Tải lên hình nền
+                            </button>
                         </div>
-                    )}
+
+                        {/* Rendering solid color presets */}
+                        {bgColor !== undefined && bgColor !== '' && (
+                            <div className="space-y-1.5 pt-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Chọn màu chủ đạo</label>
+                                <div className="flex gap-2 flex-wrap">
+                                    {solidColors.map((sc, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => {
+                                                setBgColor(sc.css);
+                                                setBgTextColor(sc.text);
+                                            }}
+                                            className={`w-8 h-8 rounded-full hover:scale-110 active:scale-95 transition-all shadow-md relative shrink-0 ${bgColor === sc.css ? 'ring-4 ring-offset-2 ring-cyan-500' : ''}`}
+                                            style={{ backgroundColor: sc.css }}
+                                            title={sc.name}
+                                        >
+                                            {bgColor === sc.css && (
+                                                <span className="absolute inset-0 flex items-center justify-center text-xs font-bold" style={{ color: sc.text }}>
+                                                    ✓
+                                                </span>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Rendering customizable linear-gradients list */}
+                        {bgGradient !== undefined && bgGradient !== '' && (
+                            <div className="space-y-1.5 pt-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Chọn dải màu rực rỡ</label>
+                                <div className="flex gap-2 flex-wrap">
+                                    {gradients.map((g, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => {
+                                                setBgGradient(g.css);
+                                                setBgTextColor(g.text);
+                                            }}
+                                            className={`w-8 h-8 rounded-lg hover:scale-110 active:scale-95 transition-all shadow-md relative shrink-0 ${bgGradient === g.css ? 'ring-4 ring-offset-2 ring-cyan-500' : ''}`}
+                                            style={{ background: g.css }}
+                                            title={g.name}
+                                        >
+                                            {bgGradient === g.css && (
+                                                <span className="absolute inset-0 flex items-center justify-center text-xs font-bold" style={{ color: g.text }}>
+                                                    ✓
+                                                </span>
+                                            )}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Background Custom Upload Field with file Input Ref */}
+                        <div className="hidden">
+                            <input 
+                                type="file"
+                                ref={backgroundUploadRef}
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                        const reader = new FileReader();
+                                        reader.onload = (event) => {
+                                            const base64 = event.target?.result as string;
+                                            if (base64) {
+                                                setBgImage(base64);
+                                                setBgTextColor('#ffffff');
+                                                // Clear existing coloring states
+                                                setBgColor('');
+                                                setBgGradient('');
+                                            }
+                                        };
+                                        reader.readAsDataURL(file);
+                                    }
+                                }}
+                                accept="image/*"
+                            />
+                        </div>
+
+                        {bgImage && (
+                            <div className="pt-1 space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Hình nền của bạn</label>
+                                <div className="relative rounded-xl overflow-hidden shadow-sm max-w-sm border border-slate-205 dark:border-slate-800 bg-black/10">
+                                    <img src={bgImage} alt="Custom Background Cover" className="w-full h-20 object-cover" />
+                                    <button
+                                        type="button"
+                                        onClick={() => setBgImage('')}
+                                        className="absolute top-1.5 right-1.5 bg-black/70 hover:bg-black text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-semibold"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Type 2: Poll options */}
                     {type === 'poll' && (
@@ -503,15 +694,15 @@ const CreatePostModal: React.FC<CreatePostModalProps> = ({ user, isOpen, onClose
                     {/* Quick Select Type Tabs */}
                     <div className="border-t border-slate-100 dark:border-slate-800 pt-3">
                         <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Thay đổi định dạng bài đăng</label>
-                        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                        <div className="flex flex-wrap gap-1.5 pb-1">
                             {postTypes.map(pt => (
                                 <button
                                     key={pt.value}
                                     type="button"
                                     onClick={() => setType(pt.value)}
-                                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border flex items-center gap-1.5 shrink-0 ${
+                                    className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border flex items-center gap-1.5 ${
                                         type === pt.value 
-                                        ? 'bg-cyan-500 border-cyan-500 text-white shadow-sm scale-102' 
+                                        ? 'bg-cyan-500 border-cyan-500 text-white shadow-sm scale-110 font-bold' 
                                         : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/80'
                                     }`}
                                 >

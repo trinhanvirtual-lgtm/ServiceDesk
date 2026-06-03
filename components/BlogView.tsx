@@ -6,7 +6,7 @@ import { useLanguage } from './LanguageContext';
 import { GoogleGenAI } from '@google/genai';
 import { motion, AnimatePresence } from 'motion/react';
 
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { collection, onSnapshot, query, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { TrashIcon } from './icons';
 
@@ -243,6 +243,7 @@ const BlogView: React.FC<BlogViewProps> = ({ user, onNavigate, onSchedule, onIte
     const [articles, setArticles] = useState<Article[]>([]);
 
     useEffect(() => {
+        if (!auth.currentUser) return;
         const q = query(collection(db, 'blogArticles'), orderBy('createdAt', 'desc'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const articlesData = snapshot.docs.map(doc => {
@@ -289,6 +290,24 @@ const BlogView: React.FC<BlogViewProps> = ({ user, onNavigate, onSchedule, onIte
     // Summarization state
     const [activeSummary, setActiveSummary] = useState<{title: string, text: string} | null>(null);
     const [isSummarizing, setIsSummarizing] = useState(false);
+    
+    // Toast state
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+    const showToast = (message: string) => {
+        setToastMessage(message);
+        setTimeout(() => setToastMessage(null), 3000);
+    };
+
+    const handleShareArticle = async (article: Article) => {
+        try {
+            await navigator.clipboard.writeText(`${window.location.origin}?article=${article.id}`);
+            showToast("Đã sao chép liên kết vào bộ nhớ tạm!");
+        } catch (error) {
+            console.error("Copy failed", error);
+            showToast("Không thể sao chép liên kết");
+        }
+    };
 
     useEffect(() => {
         setVisibleItems(8);

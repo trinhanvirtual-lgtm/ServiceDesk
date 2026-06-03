@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { User, RecentItem } from '../App';
-import { LinkIcon, ReplyIcon, ForwardIcon, TrashIcon, MailIcon, StarIcon, SyncIcon, TagIcon, UsersIcon, ChevronLeftIcon } from './icons';
+import { LinkIcon, ReplyIcon, ForwardIcon, TrashIcon, MailIcon, StarIcon, SyncIcon, TagIcon, UsersIcon, ChevronLeftIcon, MenuIcon } from './icons';
 import ComposeModal from './ComposeModal';
 import EmailBanner from './EmailBanner';
 import { useLanguage } from './LanguageContext';
@@ -114,6 +114,7 @@ const EmailClient: React.FC<EmailClientProps> = ({ user, onItemViewed }) => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMenuCollapsed, setIsMenuCollapsed] = useState(true);
   const { t } = useLanguage();
 
   const zimbraEmail = localStorage.getItem('zimbra_email');
@@ -235,44 +236,69 @@ const EmailClient: React.FC<EmailClientProps> = ({ user, onItemViewed }) => {
             {/* List Container */}
             <div className={`flex flex-col lg:flex-row flex-1 lg:flex-none lg:w-2/3 xl:w-1/2 border-r border-white/50 ${selectedEmail ? 'hidden lg:flex' : 'flex'}`}>
               {/* Categories Pane */}
-              <div className="w-full lg:w-1/2 xl:w-1/3 border-b lg:border-b-0 lg:border-r border-white/50 flex flex-col">
-                <div className="p-4 border-b border-white/50 shrink-0 flex items-center justify-between gap-2">
-                    <button onClick={() => setIsComposing(true)} className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold rounded-lg shadow-lg hover:shadow-cyan-500/40 transition-all transform hover:scale-105">
-                        <MailIcon className="w-5 h-5"/>
-                        <span className="hidden xl:inline">{t('compose')}</span>
+              <div className={`border-b lg:border-b-0 lg:border-r border-white/50 flex flex-col transition-all duration-300 ${isMenuCollapsed ? 'w-full lg:w-20' : 'w-full lg:w-1/2 xl:w-1/3'}`}>
+                <div className={`p-4 border-b border-white/50 shrink-0 flex items-center justify-between gap-2`}>
+                    <button onClick={() => setIsMenuCollapsed(!isMenuCollapsed)} className={`hidden lg:flex p-2.5 rounded-lg bg-white/60 hover:bg-white text-slate-700 shadow-sm transition-all text-center justify-center`}>
+                        <span className="sr-only">Toggle Menu</span>
+                        <MenuIcon className="w-5 h-5"/>
                     </button>
-                    <button onClick={handleSync} disabled={isSyncing} className="p-2.5 rounded-lg bg-white/60 hover:bg-white text-blue-700 shadow-md transition-all transform hover:scale-105 disabled:opacity-60 disabled:cursor-wait">
-                        <SyncIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`}/>
-                    </button>
+                    {!isMenuCollapsed && (
+                        <button onClick={() => setIsComposing(true)} className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold rounded-lg shadow-lg hover:shadow-cyan-500/40 transition-all transform hover:scale-105">
+                            <MailIcon className="w-5 h-5"/>
+                            <span className="hidden xl:inline">{t('compose')}</span>
+                        </button>
+                    )}
+                    {isMenuCollapsed && (
+                        <button onClick={() => setIsComposing(true)} className="p-2.5 w-full flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-bold rounded-lg shadow-lg hover:shadow-cyan-500/40 transition-all transform hover:scale-105">
+                            <MailIcon className="w-5 h-5"/>
+                        </button>
+                    )}
+                    {!isMenuCollapsed && (
+                        <button onClick={handleSync} disabled={isSyncing} className="p-2.5 rounded-lg bg-white/60 hover:bg-white text-blue-700 shadow-md transition-all transform hover:scale-105 disabled:opacity-60 disabled:cursor-wait">
+                            <SyncIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`}/>
+                        </button>
+                    )}
                 </div>
-                {syncMessage && <div className="text-center text-sm font-semibold p-2 bg-blue-100 text-blue-800">{syncMessage}</div>}
-                {zimbraEmail && (
+                {syncMessage && !isMenuCollapsed && <div className="text-center text-sm font-semibold p-2 bg-blue-100 text-blue-800">{syncMessage}</div>}
+                {zimbraEmail && !isMenuCollapsed && (
                     <div className="px-4 py-2 bg-slate-50 border-b border-white/50 flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500 shadow-sm animate-pulse"></div>
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate">Zimbra: {zimbraEmail}</span>
                     </div>
                 )}
-                <div className="p-2">
+                {isMenuCollapsed && (
+                    <div className="p-4 border-b border-white/50 shrink-0 hidden lg:flex justify-center">
+                        <button onClick={handleSync} disabled={isSyncing} className="p-2.5 rounded-lg bg-white/60 hover:bg-white text-blue-700 shadow-md transition-all transform hover:scale-105 disabled:opacity-60 disabled:cursor-wait">
+                            <SyncIcon className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`}/>
+                        </button>
+                    </div>
+                )}
+                <div className={`p-2 flex ${isMenuCollapsed ? 'flex-row lg:flex-col overflow-x-auto gap-2 no-scrollbar' : 'flex-col'}`}>
                   {categories.map(cat => {
                       const unreadCount = cat.id !== 'starred' ? unreadCounts[cat.id] : 0;
                       return (
                           <button 
                             key={cat.id} 
                             onClick={() => setActiveCategory(cat.id)}
-                            className={`w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg transition-colors text-left ${activeCategory === cat.id ? 'bg-white/80 font-bold text-cyan-800' : 'text-slate-700 hover:bg-white/50 font-medium'}`}
+                            className={`flex items-center transition-colors ${isMenuCollapsed ? 'justify-center p-3 rounded-xl flex-shrink-0 relative' : 'w-full justify-between gap-3 px-3 py-2.5 rounded-lg text-left'} ${activeCategory === cat.id ? 'bg-white/80 font-bold text-cyan-800' : 'text-slate-700 hover:bg-white/50 font-medium'}`}
+                            title={isMenuCollapsed ? cat.name : undefined}
                           >
-                              <div className="flex items-center gap-3">
+                              <div className={`flex items-center ${isMenuCollapsed ? 'justify-center' : 'gap-3'}`}>
                                   {cat.icon}
-                                  <span>{cat.name}</span>
+                                  {!isMenuCollapsed && <span>{cat.name}</span>}
                               </div>
-                              {unreadCount > 0 && <span className="text-xs font-bold bg-cyan-500 text-white px-2 py-0.5 rounded-full">{unreadCount}</span>}
+                              {unreadCount > 0 && (
+                                  isMenuCollapsed 
+                                      ? <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-cyan-500 rounded-full"></span>
+                                      : <span className="text-xs font-bold bg-cyan-500 text-white px-2 py-0.5 rounded-full">{unreadCount}</span>
+                              )}
                           </button>
                       )
                   })}
                 </div>
               </div>
               {/* Email List Pane */}
-              <div className="w-full lg:w-1/2 xl:w-2/3 flex flex-col flex-1">
+              <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
                 <div className="p-4 border-b border-white/50 shrink-0 flex flex-col gap-3">
                     <div className="flex justify-between items-center">
                         <div>

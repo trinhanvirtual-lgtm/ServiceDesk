@@ -1,0 +1,12 @@
+# Ignore list for Google Cloud Run deployment/artifact uploads
+# Prevent uploading node_modules & development environments but ensure 'dist/' is uploaded
+
+.gcloudignore
+.git
+.github
+.vscode
+.idea
+node_modules/
+npm-debug.log
+.env
+.env.local

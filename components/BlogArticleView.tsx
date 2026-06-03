@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, View } from '../App';
 import { ChevronLeftIcon, PaperAirplaneIcon, UserIcon, CalendarIcon, TagIcon, TrashIcon } from './icons';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { doc, onSnapshot, collection, query, orderBy, addDoc, serverTimestamp, deleteDoc, Timestamp } from 'firebase/firestore';
 import { motion } from 'motion/react';
 
@@ -43,6 +43,7 @@ const BlogArticleView: React.FC<BlogArticleViewProps> = ({ user, articleId, onNa
 
     useEffect(() => {
         if (!articleId) return;
+        if (!auth.currentUser) return;
 
         const unsubscribeArticle = onSnapshot(doc(db, 'blogArticles', articleId), (docSnap) => {
             if (docSnap.exists()) {
@@ -215,9 +216,9 @@ const BlogArticleView: React.FC<BlogArticleViewProps> = ({ user, articleId, onNa
                                         <div className="flex-1 bg-white border border-slate-100 rounded-2xl p-4 shadow-sm relative transition-all hover:shadow-md">
                                             <div className="flex justify-between items-start mb-2">
                                                 <div>
-                                                    <h4 className="font-bold text-slate-900 text-sm">{comment.commentId === 'user-admin' ? 'Quản trị viên' : comment.authorName}</h4>
+                                                    <h4 className="font-bold text-slate-900 text-sm">{comment.id === 'user-admin' ? 'Quản trị viên' : comment.authorName}</h4>
                                                     <span className="text-[10px] text-slate-400 uppercase tracking-wider">
-                                                        {comment.createdAt?.toDate ? comment.createdAt.toDate().toLocaleString('vi-VN') : 'Vừa xong'}
+                                                        {comment.createdAt && typeof comment.createdAt !== 'number' && 'toDate' in comment.createdAt ? comment.createdAt.toDate().toLocaleString('vi-VN') : (typeof comment.createdAt === 'number' ? new Date(comment.createdAt).toLocaleString('vi-VN') : 'Vừa xong')}
                                                     </span>
                                                 </div>
                                                 {(comment.authorId === user.id || user.role === 'superadmin') && (

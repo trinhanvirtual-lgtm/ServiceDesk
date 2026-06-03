@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { User, View } from '../App';
 import { useLanguage } from './LanguageContext';
 
-import { SettingsIcon, LogoutIcon, UsersIcon, GlobeIcon } from './icons';
+import { SettingsIcon, LogoutIcon } from './icons';
 
 interface UserMenuProps {
   user: User;
@@ -74,12 +74,6 @@ const UserMenu: React.FC<UserMenuProps> = ({ user, onLogout, onNavigate, directi
           </div>
           <div className="p-2">
             <MenuItem icon={<SettingsIcon className="w-4 h-4 text-slate-500" />} label={t('settings')} onClick={() => { onNavigate('settings'); setIsOpen(false); }} />
-            {(user.role === 'superadmin' || user.role === 'admin') && (
-              <MenuItem icon={<UsersIcon className="w-4 h-4 text-teal-500" />} label="Quản lý thành viên" onClick={() => { onNavigate('user-management'); setIsOpen(false); }} />
-            )}
-            {(user.role === 'superadmin' || user.role === 'admin') && (
-              <MenuItem icon={<GlobeIcon className="w-4 h-4 text-sky-500" />} label="Quản trị website" onClick={() => { onNavigate('website-data'); setIsOpen(false); }} />
-            )}
             <div className="w-full border-t my-1 border-[--color-border-secondary]"></div>
             <MenuItem icon={<LogoutIcon className="w-4 h-4 text-red-500" />} label={t('logout')} onClick={onLogout} isDestructive />
           </div>

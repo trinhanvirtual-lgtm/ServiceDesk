@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { HomeIcon, CalendarIcon, StickyNoteIcon, ChecklistIcon, UsersIcon, FolderIcon, BookOpenIcon, RssIcon, GraduationCapIcon, XIcon, ClipboardListIcon, ChevronDownIcon, ChevronUpIcon, SettingsIcon } from './icons';
-import { View, RecentItem, User } from '../App';
+import { HomeIcon, CalendarIcon, StickyNoteIcon, ChecklistIcon, UsersIcon, FolderIcon, BookOpenIcon, RssIcon, GraduationCapIcon, XIcon, ClipboardListIcon, ChevronDownIcon, ChevronUpIcon, SitemapIcon, WorkflowIcon } from './icons';
+import { View, RecentItem } from '../App';
 import { useLanguage } from './LanguageContext';
 
 // --- Sidebar Components ---
@@ -23,7 +23,6 @@ const NavItem: React.FC<NavItemProps> = ({ icon, label, active = false, isCollap
 );
 
 interface LeftSidebarProps {
-  user: User;
   isCollapsed: boolean;
   isMobileOpen: boolean;
   onClose: () => void;
@@ -36,7 +35,7 @@ interface LeftSidebarProps {
   isAiOpen?: boolean;
 }
 
-const LeftSidebar: React.FC<LeftSidebarProps> = ({ user, isCollapsed, isMobileOpen, onClose, onMouseEnter, onMouseLeave, activeView, onNavigate, recentlyViewed, onAiClick, isAiOpen }) => {
+const LeftSidebar: React.FC<LeftSidebarProps> = ({ isCollapsed, isMobileOpen, onClose, onMouseEnter, onMouseLeave, activeView, onNavigate, recentlyViewed, onAiClick, isAiOpen }) => {
   const { t } = useLanguage();
   const [isRecentExpanded, setIsRecentExpanded] = useState(true);
 
@@ -65,10 +64,8 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({ user, isCollapsed, isMobileOp
           <NavItem icon={<BookOpenIcon className="w-5 h-5 shrink-0 text-emerald-500" />} label={t('blog')} active={activeView === 'blog'} isCollapsed={isCollapsed} onClick={() => onNavigate('blog')} />
           <NavItem icon={<GraduationCapIcon className="w-5 h-5 shrink-0 text-violet-500" />} label={t('training')} active={activeView === 'training'} isCollapsed={isCollapsed} onClick={() => onNavigate('training')} />
           <NavItem icon={<ClipboardListIcon className="w-5 h-5 shrink-0 text-rose-500" />} label={t('requestsAndApprovals')} active={activeView === 'requests'} isCollapsed={isCollapsed} onClick={() => onNavigate('requests')} />
-          
-          {(user.role === 'superadmin' || user.role === 'admin') && (
-            <NavItem icon={<SettingsIcon className="w-5 h-5 shrink-0 text-slate-500" />} label="Quản trị website" active={activeView === 'website-data'} isCollapsed={isCollapsed} onClick={() => onNavigate('website-data')} />
-          )}
+          <NavItem icon={<SitemapIcon className="w-5 h-5 shrink-0 text-cyan-600" />} label={t('orgChartConfig')} active={activeView === 'org-chart'} isCollapsed={isCollapsed} onClick={() => onNavigate('org-chart')} />
+          <NavItem icon={<WorkflowIcon className="w-5 h-5 shrink-0 text-fuchsia-500" />} label="Quy trình" active={activeView === 'process'} isCollapsed={isCollapsed} onClick={() => onNavigate('process')} />
 
           {recentlyViewed.length > 0 && (
             <div className="shrink-0 mt-2">

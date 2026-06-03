@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, ServiceState, ServiceName } from '../App';
+import { User, ServiceState, ServiceName, View } from '../App';
 import { useLanguage } from './LanguageContext';
 import { db, auth } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -196,8 +196,18 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, services, onToggleSyn
         setProfileMessage('');
         try {
             const provider = new GoogleAuthProvider();
+            provider.addScope('https://www.googleapis.com/auth/calendar.events');
+            provider.addScope('https://www.googleapis.com/auth/calendar.readonly');
+            provider.addScope('https://www.googleapis.com/auth/gmail.readonly');
             provider.setCustomParameters({ prompt: 'select_account' });
+            
             const result = await linkWithPopup(auth.currentUser, provider);
+            
+            // Caching token to window for Google APIs
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            if (credential?.accessToken) {
+                (window as unknown as { _googleAccessToken?: string })._googleAccessToken = credential.accessToken;
+            }
             
             setIsGoogleLinked(true);
             setGoogleEmail(result.user.email || '');
@@ -499,15 +509,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, services, onToggleSyn
         { id: 'ai_voice', label: t('aiVoiceSettings'), icon: <RobotIcon className="w-5 h-5"/>, description: t('configureAiAssistant') },
         { id: 'zimbra', label: t('zimbraSettings'), icon: <MailIcon className="w-5 h-5"/>, description: t('zimbraSettingsDesc') },
     ];
-    
-    if (user.role === 'superadmin') {
-        sections.push({
-            id: 'administration',
-            label: t('websiteData'),
-            icon: <GlobeIcon className="w-5 h-5" />,
-            description: t('websiteDataDesc') || 'Quản lý Website & Phân quyền'
-        });
-    }
 
     const renderSectionContent = () => {
         switch (activeSection) {
@@ -554,53 +555,6 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, services, onToggleSyn
                             >
                                 <SettingsIcon className="w-5 h-5"/> {t('editProfile')}
                             </button>
-
-                            {/* Section: Google Account Link */}
-                            <div className="w-full max-w-md mt-6 p-5 rounded-2xl border border-[--color-border-secondary] bg-[--color-surface-primary] space-y-4 shadow-sm">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2.5 bg-red-500/10 rounded-xl text-red-500 dark:bg-red-500/20">
-                                            <GoogleIcon className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-sm text-[--color-text-primary]">Liên kết Google</h4>
-                                            <p className="text-xs text-[--color-text-subtle]">
-                                                {isGoogleLinked ? 'Đã bật đăng nhập nhanh' : 'Đăng nhập bảo mật bằng tài khoản Google'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    {isGoogleLinked ? (
-                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-green-500/10 text-green-500 rounded-md border border-green-500/20 uppercase tracking-wider">Đã liên kết</span>
-                                    ) : (
-                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-500/10 text-amber-500 rounded-md border border-amber-500/20 uppercase tracking-wider">Chưa kết nối</span>
-                                    )}
-                                </div>
-                                
-                                <div className="flex items-center justify-between text-xs pt-1 border-t border-[--color-border-primary]/50">
-                                    <span className="font-mono text-[--color-text-secondary]">
-                                        {isGoogleLinked ? (googleEmail || user.email) : 'Chưa liên kết tài khoản'}
-                                    </span>
-                                    {isGoogleLinked ? (
-                                        <button
-                                            type="button"
-                                            onClick={handleUnlinkGoogle}
-                                            disabled={isLoading}
-                                            className="font-bold text-red-600 hover:text-red-700 transition disabled:opacity-50 cursor-pointer"
-                                        >
-                                            {isLoading ? 'Đang xử lý...' : 'Hủy liên kết'}
-                                        </button>
-                                    ) : (
-                                        <button
-                                            type="button"
-                                            onClick={handleLinkGoogle}
-                                            disabled={isLoading}
-                                            className="font-bold text-[--color-accent-600] hover:text-[--color-accent-700] transition disabled:opacity-50 cursor-pointer"
-                                        >
-                                            {isLoading ? 'Đang xử lý...' : 'Liên kết ngay'}
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
                         </div>
                     ) : (
                         <div className="w-full max-w-md space-y-5 animate-fade-in">
@@ -649,6 +603,54 @@ const SettingsView: React.FC<SettingsViewProps> = ({ user, services, onToggleSyn
                             </div>
                         </div>
                     )}
+
+                    {/* Section: Google Account Link (Consistent display below) */}
+                    <div className="w-full max-w-md mt-6 p-5 rounded-2xl border border-[--color-border-secondary] bg-[--color-surface-primary] space-y-4 shadow-sm animate-fade-in text-left">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-red-500/10 rounded-xl text-red-500 dark:bg-red-500/20">
+                                    <GoogleIcon className="w-6 h-6" />
+                                </div>
+                                <div className="text-left">
+                                    <h4 className="font-bold text-sm text-[--color-text-primary]">Liên kết Google Account</h4>
+                                    <p className="text-xs text-[--color-text-subtle] mt-0.5">
+                                        {isGoogleLinked ? 'Lưu lịch sử & tác vụ qua Gmail, Calendar' : 'Kích hoạt đồng bộ hoá Lịch & Gmail của bạn'}
+                                    </p>
+                                </div>
+                            </div>
+                            {isGoogleLinked ? (
+                                <span className="text-[10px] font-bold px-2 py-0.5 bg-green-500/10 text-green-500 rounded-md border border-green-500/20 uppercase tracking-wider">Đã kết nối</span>
+                            ) : (
+                                <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-500/10 text-amber-500 rounded-md border border-amber-500/20 uppercase tracking-wider">Chưa kết nối</span>
+                            )}
+                        </div>
+                        
+                        <div className="flex items-center justify-between text-xs pt-3 border-t border-[--color-border-primary]/50">
+                            <span className="font-mono text-[--color-text-secondary] truncate max-w-[180px] self-center">
+                                {isGoogleLinked ? (googleEmail || user.email) : 'Chưa liên kết tài khoản Google'}
+                            </span>
+                            {isGoogleLinked ? (
+                                <button
+                                    type="button"
+                                    onClick={handleUnlinkGoogle}
+                                    disabled={isLoading}
+                                    className="font-bold text-xs text-red-650 dark:text-red-400 bg-red-500/10 hover:bg-red-500/15 active:scale-95 transition-all px-3 py-1.5 rounded-lg border border-red-500/20 cursor-pointer"
+                                >
+                                    {isLoading ? 'Đang xử lý...' : 'Hủy liên kết'}
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={handleLinkGoogle}
+                                    disabled={isLoading}
+                                    className="font-bold text-xs text-white bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 active:scale-95 transition-all px-4 py-2 rounded-xl shadow-md hover:shadow-lg shadow-red-500/10 duration-150 cursor-pointer flex items-center gap-1.5"
+                                >
+                                    <GoogleIcon className="w-3.5 h-3.5 fill-white" />
+                                    {isLoading ? 'Đang kết nối...' : 'Liên kết tài khoản Google'}
+                                </button>
+                            )}
+                        </div>
+                    </div>
                     {profileMessage && (
                         <div className={`w-full max-w-md p-3 text-center rounded-lg font-bold border animate-fade-in ${profileMessage === t('profileUpdateError') ? 'bg-red-50 text-red-700 border-red-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
                             {profileMessage}
