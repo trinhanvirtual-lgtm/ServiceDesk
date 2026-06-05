@@ -3,6 +3,7 @@ import { User, View } from '../App';
 import { useLanguage } from './LanguageContext';
 import { initialContacts } from './ContactsView';
 import { ClassBannerBg, mockClasses, ClassInfo } from './TrainingDashboardView';
+import { OnlineLearningView } from './OnlineLearningView';
 import { 
   MessageSquare, 
   ClipboardList, 
@@ -21,7 +22,10 @@ import {
   Sparkles, 
   Calendar, 
   Send, 
-  Bookmark 
+  Bookmark,
+  PlayCircle,
+  Award,
+  Check
 } from 'lucide-react';
 
 export interface Material {
@@ -109,9 +113,18 @@ interface ClassworkTabProps {
     onUpdateTopics: (topics: Topic[]) => void;
     teacherName: string;
     onAddSystemStreamPost: (title: string, resourceUrl?: string, resourceId?: string) => void;
+    completedMatIds: Record<string, boolean>;
+    onToggleCompleteMaterial: (materialId: string) => void;
 }
 
-const ClassworkView: React.FC<ClassworkTabProps> = ({ topics, onUpdateTopics, teacherName, onAddSystemStreamPost }) => {
+const ClassworkView: React.FC<ClassworkTabProps> = ({ 
+    topics, 
+    onUpdateTopics, 
+    teacherName, 
+    onAddSystemStreamPost,
+    completedMatIds,
+    onToggleCompleteMaterial
+}) => {
     const [showCreateMenu, setShowCreateMenu] = useState(false);
     const [showTopicModal, setShowTopicModal] = useState(false);
     const [showMaterialModal, setShowMaterialModal] = useState(false);
@@ -331,17 +344,48 @@ const ClassworkView: React.FC<ClassworkTabProps> = ({ topics, onUpdateTopics, te
                                 {topic.materials.length > 0 ? (
                                     topic.materials.map(material => {
                                         const isExpanded = expandedMaterial === material.id;
+                                        const isCompleted = completedMatIds?.[material.id] || false;
+                                        
+                                        const handleMaterialClick = () => {
+                                            setExpandedMaterial(isExpanded ? null : material.id);
+                                            if (!isExpanded && onToggleCompleteMaterial && !isCompleted) {
+                                                onToggleCompleteMaterial(material.id);
+                                            }
+                                        };
+
                                         return (
                                             <div 
                                                 key={material.id} 
-                                                className="hover:bg-slate-50/30 dark:hover:bg-slate-950/20 transition-all p-3 md:p-4 cursor-pointer"
-                                                onClick={() => setExpandedMaterial(isExpanded ? null : material.id)}
+                                                className={`hover:bg-slate-50/30 dark:hover:bg-slate-950/20 transition-all p-3 md:p-4 cursor-pointer ${isCompleted ? 'bg-slate-50/25 dark:bg-slate-950/5' : ''}`}
+                                                onClick={handleMaterialClick}
                                             >
                                                 <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
                                                     <div className="flex items-center gap-3 min-w-0">
+                                                        {/* Sleek Manual Checkbox representing completion status of each training item */}
+                                                        <div 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (onToggleCompleteMaterial) {
+                                                                    onToggleCompleteMaterial(material.id);
+                                                                }
+                                                            }}
+                                                            className="p-1 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg shrink-0 mr-1 focus:outline-none"
+                                                            title={isCompleted ? "Đánh dấu là chưa học" : "Đánh dấu là đã học"}
+                                                        >
+                                                            <div className={`w-[18px] h-[18px] rounded-md border flex items-center justify-center transition-all ${isCompleted ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-transparent'}`}>
+                                                                <Check className="w-3 h-3 text-white stroke-[4px]" />
+                                                            </div>
+                                                        </div>
                                                         <MaterialIcon type={material.type} />
                                                         <div className="min-w-0">
-                                                            <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{material.title}</p>
+                                                            <p className={`font-bold text-sm transition-colors flex items-center gap-2 ${isCompleted ? 'text-slate-500 dark:text-slate-400 line-through' : 'text-slate-800 dark:text-slate-200'}`}>
+                                                                <span>{material.title}</span>
+                                                                {isCompleted && (
+                                                                    <span className="no-underline inline-block text-[9px] font-black uppercase bg-emerald-100/60 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-250/20 px-1.5 py-0.5 rounded">
+                                                                        Đã học
+                                                                    </span>
+                                                                )}
+                                                            </p>
                                                             <div className="flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500 font-semibold mt-0.5">
                                                                 <span className="uppercase">{material.type}</span>
                                                                 {material.points !== undefined && (
@@ -422,7 +466,7 @@ const ClassworkView: React.FC<ClassworkTabProps> = ({ topics, onUpdateTopics, te
 
             {/* Modal "Thêm chủ đề" inline */}
             {showTopicModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[100] flex justify-center items-center p-4">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] flex justify-center items-center p-4">
                     <div className="absolute inset-0" onClick={() => setShowTopicModal(false)}></div>
                     <form onSubmit={handleCreateTopic} className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-xl space-y-4">
                         <div className="flex justify-between items-center">
@@ -453,7 +497,7 @@ const ClassworkView: React.FC<ClassworkTabProps> = ({ topics, onUpdateTopics, te
 
             {/* Google Classroom Detailed Material/Assignment Composer Modal */}
             {showMaterialModal && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[100] flex justify-center items-center p-4 overflow-y-auto">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[9999] flex justify-center items-center p-4 overflow-y-auto">
                     <div className="absolute inset-0" onClick={() => setShowMaterialModal(false)}></div>
                     <form onSubmit={handleCreateMaterial} className="relative w-full max-w-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl flex flex-col my-8 animate-scale-in max-h-[90vh] overflow-hidden text-left">
                         
@@ -1131,6 +1175,47 @@ const ClassDetailView: React.FC<ClassDetailViewProps> = ({ user, classId, onNavi
         }
     };
 
+    // Tracks material completion for employee pathways
+    const [completedMatIds, setCompletedMatIds] = useState<Record<string, boolean>>(() => {
+        if (!classId || !user?.id) return {};
+        const key = `completed_materials_${classId}_${user.id}`;
+        const stored = localStorage.getItem(key);
+        try {
+            return stored ? JSON.parse(stored) : {};
+        } catch {
+            return {};
+        }
+    });
+
+    const handleToggleCompleteMaterial = (materialId: string) => {
+        if (!classId || !user?.id) return;
+        const next = { ...completedMatIds, [materialId]: !completedMatIds[materialId] };
+        setCompletedMatIds(next);
+        const key = `completed_materials_${classId}_${user.id}`;
+        localStorage.setItem(key, JSON.stringify(next));
+    };
+
+    const totalMaterials = useMemo(() => {
+        return topics.reduce((acc, topic) => acc + (topic.materials?.length || 0), 0);
+    }, [topics]);
+
+    const completedMaterialsCount = useMemo(() => {
+        return topics.reduce((acc, topic) => {
+            const completedInTopic = topic.materials?.filter(m => completedMatIds[m.id]).length || 0;
+            return acc + completedInTopic;
+        }, 0);
+    }, [topics, completedMatIds]);
+
+    const completionPercentage = useMemo(() => {
+        return totalMaterials > 0 ? Math.round((completedMaterialsCount / totalMaterials) * 100) : 0;
+    }, [totalMaterials, completedMaterialsCount]);
+
+    // Persist percentage calculation for main training catalog status indicators
+    useEffect(() => {
+        if (!classId || !user?.id) return;
+        localStorage.setItem(`course_completion_rate_${classId}_${user.id}`, String(completionPercentage));
+    }, [completionPercentage, classId, user.id]);
+
     // Callback to append structured notification post into the Stream record
     const handleAddSystemPost = (title: string, resourceUrl?: string, resourceId?: string) => {
         if (!classId) return;
@@ -1184,6 +1269,7 @@ const ClassDetailView: React.FC<ClassDetailViewProps> = ({ user, classId, onNavi
     const tabs = [
         { id: 'stream', label: t('stream') || 'Bảng tin', icon: <MessageSquare className="w-4 h-4" /> },
         { id: 'classwork', label: t('classwork') || 'Bài tập trên lớp', icon: <ClipboardList className="w-4 h-4" /> },
+        { id: 'online-learning', label: 'Bắt đầu học online', icon: <PlayCircle className="w-4 h-4" /> },
         { id: 'people', label: t('people') || 'Mọi người', icon: <Users className="w-4 h-4" /> },
         { id: 'grades', label: t('grades') || 'Điểm số', icon: <BarChart2 className="w-4 h-4" /> },
     ];
@@ -1192,9 +1278,69 @@ const ClassDetailView: React.FC<ClassDetailViewProps> = ({ user, classId, onNavi
         <main className="flex-1 flex flex-col min-h-0 overflow-y-auto no-scrollbar p-[3px] gap-3.5 pb-24 md:pb-8">
             
             {/* Nav Back Strip */}
-            <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-blue-400 hover:underline cursor-pointer self-start transition-all ml-1" onClick={() => onNavigate('training')}>
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Quay lại Danh sách khóa học</span>
+            <div className="flex items-center justify-between ml-1 mr-1 flex-wrap gap-2 shrink-0">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 dark:text-blue-400 hover:underline cursor-pointer transition-all" onClick={() => onNavigate('training')}>
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span>Quay lại Danh sách khóa học</span>
+                </div>
+            </div>
+
+            {/* Elegant Course Progress Tracker Widget */}
+            <div className="bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800 rounded-2xl p-4 shadow-sm text-left relative overflow-hidden shrink-0">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                    <div>
+                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                            <BarChart2 className="w-4 h-4 text-indigo-500" />
+                            Tiến độ học tập của bạn
+                        </h3>
+                        {totalMaterials > 0 ? (
+                            <p className="text-[11px] font-semibold text-slate-450 mt-1">
+                                Bạn đã hoàn thành <strong className="text-slate-700 dark:text-slate-200">{completedMaterialsCount}/{totalMaterials}</strong> tài liệu & bài giảng ({completionPercentage}%)
+                            </p>
+                        ) : (
+                            <p className="text-[11px] font-semibold text-slate-450 mt-1">Chưa có bài học nào được khởi tạo trong lộ trình.</p>
+                        )}
+                    </div>
+                    {totalMaterials > 0 && completionPercentage === 100 && (
+                        <div className="bg-amber-100 dark:bg-amber-950/40 border border-amber-200/50 dark:border-amber-95-5 text-amber-805 dark:text-amber-400 text-xs font-black px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm animate-bounce self-start sm:self-center">
+                            <Sparkles className="w-4 h-4 text-amber-500 animate-spin" />
+                            <span>🏆 ĐÃ HOÀN THÀNH XUẤT SẮC</span>
+                        </div>
+                    )}
+                </div>
+
+                {totalMaterials > 0 && (
+                    <div className="mt-3 relative">
+                        {/* Outer track */}
+                        <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-950 rounded-full overflow-hidden shadow-inner border border-slate-200/25">
+                            {/* Inner fill */}
+                            <div 
+                                className="h-full bg-gradient-to-r from-teal-400 via-indigo-500 to-purple-650 transition-all duration-500 rounded-full"
+                                style={{ width: `${completionPercentage}%` }}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Congratulatory Alert Box on 100% completion */}
+                {totalMaterials > 0 && completionPercentage === 100 && (
+                    <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-amber-50/70 via-indigo-50/50 to-purple-50/50 dark:from-amber-950/20 dark:via-indigo-950/20 dark:to-purple-950/10 border border-amber-200/40 dark:border-amber-900/40 flex flex-col md:flex-row items-center gap-4 animate-fade-in relative overflow-hidden">
+                        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-300 via-indigo-200 to-purple-800"></div>
+                        
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-md shrink-0 animate-pulse relative z-10">
+                            <Award className="w-6 h-6" />
+                        </div>
+                        
+                        <div className="text-center md:text-left flex-1 relative z-10">
+                            <h4 className="text-xs font-extrabold text-indigo-900 dark:text-indigo-400 flex items-center justify-center md:justify-start gap-1">
+                                🎉 Xin chúc mừng bạn, {user.name}!
+                            </h4>
+                            <p className="text-[10px] font-semibold text-slate-651 dark:text-slate-300 mt-1 leading-relaxed">
+                                Bạn đã hoàn thành xuất sắc tất cả học liệu của chuyên đề này. Hãy tiếp tục đào luyện tinh thần để nâng cao giá trị đóng góp cho doanh nghiệp nhé!
+                            </p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Class Banner Hero Card following Google Classroom exactly */}
@@ -1210,7 +1356,7 @@ const ClassDetailView: React.FC<ClassDetailViewProps> = ({ user, classId, onNavi
                     
                     <div className="flex items-center gap-3 mt-1.5 flex-wrap text-white/90 text-xs md:text-sm font-semibold pl-0.5">
                         <span className="bg-white/20 px-2 py-0.5 rounded-md backdrop-blur-xs">
-                            {classInfo.subject}
+                          {classInfo.subject}
                         </span>
                         {classInfo.section && (
                             <>
@@ -1256,10 +1402,20 @@ const ClassDetailView: React.FC<ClassDetailViewProps> = ({ user, classId, onNavi
                 )}
                 {activeTab === 'classwork' && (
                     <ClassworkView 
+                        classId={classInfo.id}
                         topics={topics} 
                         onUpdateTopics={handleUpdateTopics} 
                         teacherName={user?.name || classInfo.teacher} 
                         onAddSystemStreamPost={handleAddSystemPost} 
+                        completedMatIds={completedMatIds}
+                        onToggleCompleteMaterial={handleToggleCompleteMaterial}
+                    />
+                )}
+                {activeTab === 'online-learning' && (
+                    <OnlineLearningView 
+                        classId={classInfo.id}
+                        classInfo={classInfo}
+                        user={user}
                     />
                 )}
                 {activeTab === 'people' && (

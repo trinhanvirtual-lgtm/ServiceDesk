@@ -105,7 +105,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ task: initialTask, on
     };
 
     return (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 flex justify-center items-center p-4" aria-modal="true" role="dialog">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[9999] flex justify-center items-center p-4" aria-modal="true" role="dialog">
             <div className="absolute inset-0" onClick={onClose}></div>
             <div className="relative w-full max-w-2xl bg-[--color-surface-tertiary] backdrop-blur-2xl rounded-xl shadow-2xl flex flex-col animate-fade-in-up max-h-[90vh]">
                 <header className="p-4 border-b border-[--color-border-secondary] flex justify-between items-center shrink-0">
@@ -434,7 +434,7 @@ const TaskView: React.FC<TaskViewProps> = ({ onItemViewed, onSendNotification })
     return (
         <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-6 relative">
             {taskToDeleteId && (
-                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex justify-center items-center p-4" aria-modal="true" role="dialog">
+                <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-[9999] flex justify-center items-center p-4" aria-modal="true" role="dialog">
                     <div className="relative w-full max-w-md bg-[--color-surface-tertiary] backdrop-blur-2xl rounded-xl shadow-2xl flex flex-col animate-fade-in-up">
                         <header className="p-4 border-b border-[--color-border-secondary]">
                             <h2 className="text-lg font-bold text-[--color-text-primary]">Xác nhận Xóa</h2>

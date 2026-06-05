@@ -142,7 +142,7 @@ const EventModal: React.FC<EventModalProps> = ({ onClose, onSave, initialEvent, 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-center items-center p-4 overflow-y-auto" aria-modal="true" role="dialog">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex justify-center items-center p-4 overflow-y-auto" aria-modal="true" role="dialog">
       <div className="absolute inset-0" onClick={onClose}></div>
       <form onSubmit={handleSave} className="relative w-full max-w-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl flex flex-col my-8 animate-scale-in max-h-[90vh] overflow-hidden">
         

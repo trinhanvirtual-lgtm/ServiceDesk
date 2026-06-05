@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { User, View } from '../App';
 import { useLanguage } from './LanguageContext';
 import TrainingBanner from './TrainingBanner';
@@ -68,13 +68,14 @@ export const ClassBannerBg: React.FC<{ image: string; className?: string }> = ({
 
 interface ClassCardProps {
     classInfo: ClassInfo;
+    user: User;
     onNavigate: (view: View, classId: string) => void;
     onShare: (classInfo: ClassInfo) => void;
     onEdit: (classInfo: ClassInfo) => void;
     onDelete: (classId: string) => void;
 }
 
-const ClassCard: React.FC<ClassCardProps> = ({ classInfo, onNavigate, onShare, onEdit, onDelete }) => {
+const ClassCard: React.FC<ClassCardProps> = ({ classInfo, user, onNavigate, onShare, onEdit, onDelete }) => {
     const [showMenu, setShowMenu] = useState(false);
 
     useEffect(() => {
@@ -88,8 +89,44 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, onNavigate, onShare, o
     // Teacher avatar placeholder
     const firstLetter = classInfo.teacher ? classInfo.teacher.charAt(0).toUpperCase() : 'T';
 
+    // Retrieve the computed completion rate for employee pathway
+    const completionRate = useMemo(() => {
+        if (!classInfo?.id || !user?.id) return 0;
+        const rateStr = localStorage.getItem(`course_completion_rate_${classInfo.id}_${user.id}`);
+        if (rateStr) return parseInt(rateStr, 10);
+
+        const stepStr = localStorage.getItem(`course_step_idx_${classInfo.id}_${user.id}`);
+        if (stepStr && parseInt(stepStr, 10) > 0) {
+            return 25; // fallback starter progress
+        }
+        return 0;
+    }, [classInfo.id, user?.id]);
+
+    const statusInfo = useMemo(() => {
+        const isCompleted = completionRate === 100 || localStorage.getItem(`course_completed_${classInfo.id}_${user.id}`) === 'true';
+        if (isCompleted) {
+            return {
+                label: 'Đã hoàn thành',
+                bg: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border-emerald-150/15',
+                bar: 'bg-emerald-500'
+            };
+        }
+        if (completionRate > 0) {
+            return {
+                label: 'Đang học',
+                bg: 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-150/15',
+                bar: 'bg-amber-500'
+            };
+        }
+        return {
+            label: 'Chưa bắt đầu',
+            bg: 'bg-slate-50 dark:bg-slate-950/30 text-slate-500 dark:text-slate-400 border-slate-200/50 dark:border-slate-800/40',
+            bar: 'bg-slate-200 dark:bg-slate-800'
+        };
+    }, [completionRate, classInfo.id, user?.id]);
+
     return (
-        <div className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xs overflow-hidden flex flex-col group text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md relative">
+        <div className="w-full bg-white dark:bg-slate-900 border border-slate-205 dark:border-slate-800/90 rounded-xl shadow-xs overflow-hidden flex flex-col group text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-md relative">
             
             {/* Header / Banner region */}
             <div className="relative h-28 w-full group/banner cursor-pointer shrink-0 overflow-hidden" onClick={() => onNavigate('class-detail', classInfo.id)}>
@@ -150,10 +187,33 @@ const ClassCard: React.FC<ClassCardProps> = ({ classInfo, onNavigate, onShare, o
                     </div>
                     {classInfo.room && (
                         <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 dark:text-slate-500 pl-0.5">
-                            <Home className="w-3 h-3" />
+                            <Home className="w-3" />
                             <span>Phòng: {classInfo.room}</span>
                         </div>
                     )}
+                    
+                    {/* Sleek Progress Status Badge & Bar */}
+                    <div className="pt-3.5 border-t border-slate-100 dark:border-slate-800/60 mt-3 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase text-slate-400">Trạng thái học tập</span>
+                            <span className={`text-[9.5px] font-bold px-2 py-0.5 rounded-full border ${statusInfo.bg}`}>
+                                {statusInfo.label}
+                            </span>
+                        </div>
+                        
+                        <div className="space-y-1">
+                            <div className="flex items-center justify-between text-[10px] font-bold text-slate-500">
+                                <span>Tiến độ hoàn tất</span>
+                                <span className={completionRate === 100 ? 'text-emerald-500' : ''}>{completionRate}%</span>
+                            </div>
+                            <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-950 rounded-full overflow-hidden">
+                                <div 
+                                    className={`h-full rounded-full transition-all duration-500 ${statusInfo.bar}`}
+                                    style={{ width: `${completionRate}%` }}
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -206,6 +266,7 @@ const TrainingDashboardView: React.FC<TrainingDashboardViewProps> = ({ user, onN
     });
 
     const [searchQuery, setSearchQuery] = useState('');
+    const [progressFilter, setProgressFilter] = useState<'all' | 'not-started' | 'in-progress' | 'completed'>('all');
     const [toastMessage, setToastMessage] = useState('');
 
     // Modal forms states
@@ -336,17 +397,37 @@ const TrainingDashboardView: React.FC<TrainingDashboardViewProps> = ({ user, onN
         setShowEditAddModal(false);
     };
 
-    // Filter classes based on search
-    const filteredClasses = classes.filter(c => {
-        const query = searchQuery.toLowerCase().trim();
-        if (!query) return true;
-        return (
-            c.name.toLowerCase().includes(query) ||
-            c.subject.toLowerCase().includes(query) ||
-            c.teacher.toLowerCase().includes(query) ||
-            (c.section && c.section.toLowerCase().includes(query))
-        );
-    });
+    // Filter classes based on search and progress tracking profiles
+    const filteredClasses = useMemo(() => {
+        return classes.filter(c => {
+            const query = searchQuery.toLowerCase().trim();
+            const matchesSearch = !query || (
+                c.name.toLowerCase().includes(query) ||
+                c.subject.toLowerCase().includes(query) ||
+                c.teacher.toLowerCase().includes(query) ||
+                (c.section && c.section.toLowerCase().includes(query))
+            );
+            if (!matchesSearch) return false;
+
+            // Get progress rate from our synced localStorage key
+            const rateStr = localStorage.getItem(`course_completion_rate_${c.id}_${user.id}`);
+            const rate = rateStr ? parseInt(rateStr, 10) : 0;
+            const isCompleted = rate === 100 || localStorage.getItem(`course_completed_${c.id}_${user.id}`) === 'true';
+
+            if (progressFilter === 'completed') {
+                return isCompleted;
+            }
+            if (progressFilter === 'in-progress') {
+                return !isCompleted && (rate > 0 || (localStorage.getItem(`course_step_idx_${c.id}_${user.id}`) && parseInt(localStorage.getItem(`course_step_idx_${c.id}_${user.id}`)!, 10) > 0));
+            }
+            if (progressFilter === 'not-started') {
+                const stepIdx = localStorage.getItem(`course_step_idx_${c.id}_${user.id}`);
+                const step = stepIdx ? parseInt(stepIdx, 10) : 0;
+                return rate === 0 && step === 0 && !isCompleted;
+            }
+            return true;
+        });
+    }, [classes, searchQuery, progressFilter, user?.id]);
 
     return (
         <main className="flex-1 flex flex-col min-h-0 overflow-hidden p-[3px] gap-3 pb-24 md:pb-8 relative">
@@ -393,6 +474,51 @@ const TrainingDashboardView: React.FC<TrainingDashboardViewProps> = ({ user, onN
                     </div>
                 </div>
 
+                {/* Progress Filter Segmented Controls */}
+                <div className="flex flex-wrap items-center gap-1.5 border border-slate-200/60 dark:border-slate-800/60 bg-white dark:bg-slate-900 rounded-2xl p-2.5 shrink-0 shadow-xs">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 ml-1.5 mr-2">Trạng thái:</span>
+                    <button
+                        onClick={() => setProgressFilter('all')}
+                        className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl transition-all border cursor-pointer ${progressFilter === 'all' ? 'bg-indigo-600 border-indigo-600 text-white shadow-xs' : 'bg-transparent border-transparent text-slate-550 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                    >
+                        Tất cả ({classes.length})
+                    </button>
+                    <button
+                        onClick={() => setProgressFilter('completed')}
+                        className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl transition-all border cursor-pointer ${progressFilter === 'completed' ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs' : 'bg-transparent border-transparent text-slate-550 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                    >
+                        Đã hoàn thành ({classes.filter(c => {
+                            const r = parseInt(localStorage.getItem(`course_completion_rate_${c.id}_${user.id}`) || '0', 10);
+                            const isComp = r === 100 || localStorage.getItem(`course_completed_${c.id}_${user.id}`) === 'true';
+                            return isComp;
+                        }).length})
+                    </button>
+                    <button
+                        onClick={() => setProgressFilter('in-progress')}
+                        className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl transition-all border cursor-pointer ${progressFilter === 'in-progress' ? 'bg-amber-600 border-amber-600 text-white shadow-xs' : 'bg-transparent border-transparent text-slate-550 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                    >
+                        Đang học ({classes.filter(c => {
+                            const r = parseInt(localStorage.getItem(`course_completion_rate_${c.id}_${user.id}`) || '0', 10);
+                            const stepStr = localStorage.getItem(`course_step_idx_${c.id}_${user.id}`);
+                            const stepVal = stepStr ? parseInt(stepStr, 10) : 0;
+                            const isComp = r === 100 || localStorage.getItem(`course_completed_${c.id}_${user.id}`) === 'true';
+                            return !isComp && (r > 0 || stepVal > 0);
+                        }).length})
+                    </button>
+                    <button
+                        onClick={() => setProgressFilter('not-started')}
+                        className={`text-[11px] font-extrabold px-3 py-1.5 rounded-xl transition-all border cursor-pointer ${progressFilter === 'not-started' ? 'bg-slate-600 border-slate-600 text-white shadow-xs' : 'bg-transparent border-transparent text-slate-550 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                    >
+                        Chưa bắt đầu ({classes.filter(c => {
+                            const r = parseInt(localStorage.getItem(`course_completion_rate_${c.id}_${user.id}`) || '0', 10);
+                            const stepStr = localStorage.getItem(`course_step_idx_${c.id}_${user.id}`);
+                            const stepVal = stepStr ? parseInt(stepStr, 10) : 0;
+                            const isComp = r === 100 || localStorage.getItem(`course_completed_${c.id}_${user.id}`) === 'true';
+                            return r === 0 && stepVal === 0 && !isComp;
+                        }).length})
+                    </button>
+                </div>
+
                 {/* Grid view of classes */}
                 {filteredClasses.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-12">
@@ -400,6 +526,7 @@ const TrainingDashboardView: React.FC<TrainingDashboardViewProps> = ({ user, onN
                             <ClassCard 
                                 key={classInfo.id} 
                                 classInfo={classInfo} 
+                                user={user}
                                 onNavigate={onNavigate} 
                                 onShare={handleShareClass}
                                 onEdit={handleOpenEditModal}

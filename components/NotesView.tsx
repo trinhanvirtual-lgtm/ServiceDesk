@@ -14,8 +14,13 @@ import {
   X, 
   Tag, 
   Search,
-  CheckCircle2
+  CheckCircle2,
+  Users,
+  Link,
+  Paperclip,
+  File as FileIcon
 } from 'lucide-react';
+import { initialContacts } from './ContactsView';
 
 export const mockNotes: Note[] = [
   {
@@ -53,10 +58,17 @@ export const mockNotes: Note[] = [
 
 interface CreateNoteProps {
   onAddNote: (noteData: Partial<Note>) => void;
+  onCloseModal?: () => void;
+  isModal?: boolean;
 }
 
-const CreateNote: React.FC<CreateNoteProps> = ({ onAddNote }) => {
-  const [isFocused, setIsFocused] = useState(false);
+export interface CreateNoteHandle {
+  focus: () => void;
+  close: () => void;
+}
+
+const CreateNote = React.forwardRef<CreateNoteHandle, CreateNoteProps>(({ onAddNote, onCloseModal, isModal = false }, ref) => {
+  const [isFocused, setIsFocused] = useState(isModal);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [noteColor, setNoteColor] = useState('default');
@@ -75,11 +87,31 @@ const CreateNote: React.FC<CreateNoteProps> = ({ onAddNote }) => {
 
   // Picker popups
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [showSharePicker, setShowSharePicker] = useState(false);
+
+  // Additional dynamic upload attachment and sharing states
+  const [attachments, setAttachments] = useState<{ name: string; url: string; size?: string; type: string }[]>([]);
+  const [sharedWith, setSharedWith] = useState<string[]>([]);
   
   const formRef = useRef<HTMLFormElement>(null);
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  React.useImperativeHandle(ref, () => ({
+    focus: () => {
+      setIsFocused(true);
+      setTimeout(() => {
+        titleInputRef.current?.focus();
+        titleInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    },
+    close: () => {
+      handleClose();
+    }
+  }));
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -91,6 +123,32 @@ const CreateNote: React.FC<CreateNoteProps> = ({ onAddNote }) => {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        const sizeKB = Math.round(file.size / 1024);
+        const sizeStr = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
+        const newAttachment = {
+          name: file.name,
+          url: reader.result,
+          size: sizeStr,
+          type: file.type || 'application/octet-stream'
+        };
+        setAttachments(prev => [...prev, newAttachment]);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const toggleContactShareLocal = (contactId: string) => {
+    setSharedWith(prev => 
+      prev.includes(contactId) ? prev.filter(id => id !== contactId) : [...prev, contactId]
+    );
   };
    
   const handleDragOver = (e: React.DragEvent) => {
@@ -122,8 +180,9 @@ const CreateNote: React.FC<CreateNoteProps> = ({ onAddNote }) => {
     const hasText = title.trim() || content.trim();
     const hasChecklist = showChecklist && checklistItems.length > 0;
     const hasImage = imageUrl.trim();
+    const hasAttachments = attachments.length > 0;
 
-    if (hasText || hasChecklist || hasImage) {
+    if (hasText || hasChecklist || hasImage || hasAttachments) {
       const tags = tagsInput
         ? tagsInput.split(',').map(t => t.trim()).filter(t => t.length > 0)
         : [];
@@ -136,6 +195,8 @@ const CreateNote: React.FC<CreateNoteProps> = ({ onAddNote }) => {
         isPinned,
         imageUrl: imageUrl.trim() || undefined,
         tags: tags.length > 0 ? tags : undefined,
+        attachments: attachments.length > 0 ? attachments : undefined,
+        sharedWith: sharedWith.length > 0 ? sharedWith : undefined,
       });
     }
 
@@ -152,7 +213,14 @@ const CreateNote: React.FC<CreateNoteProps> = ({ onAddNote }) => {
     setTagsInput('');
     setShowTagsInput(false);
     setShowColorPicker(false);
-    setIsFocused(false);
+    setIsFocused(isModal);
+    setAttachments([]);
+    setSharedWith([]);
+    setShowSharePicker(false);
+
+    if (onCloseModal) {
+      onCloseModal();
+    }
   };
 
   // Close when clicking outside
@@ -166,7 +234,7 @@ const CreateNote: React.FC<CreateNoteProps> = ({ onAddNote }) => {
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isFocused, title, content, noteColor, isPinned, checklistItems, newItemText, imageUrl, tagsInput, showChecklist]);
+  }, [isFocused, title, content, noteColor, isPinned, checklistItems, newItemText, imageUrl, tagsInput, showChecklist, isModal, attachments, sharedWith]);
 
   const handleAddChecklistItem = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -189,7 +257,7 @@ const CreateNote: React.FC<CreateNoteProps> = ({ onAddNote }) => {
   const activeColor = keepColors.find(c => c.id === noteColor) || keepColors[0];
 
   return (
-    <div className="max-w-xl mx-auto mb-10 px-4">
+    <div className={isModal ? "w-full" : "max-w-xl mx-auto mb-10 px-4"}>
       <div 
         className={`rounded-xl border transition-all duration-300 shadow-md ${isFocused ? 'ring-2 ring-indigo-500/20 drop-shadow-lg' : 'hover:shadow-md cursor-text'} ${activeColor.bg} ${activeColor.border} ${isDragging ? 'ring-4 ring-indigo-500 border-indigo-500 scale-[1.01]' : ''}`}
         onClick={() => !isFocused && setIsFocused(true)}
@@ -219,6 +287,7 @@ const CreateNote: React.FC<CreateNoteProps> = ({ onAddNote }) => {
               {/* Header Title Input and Pin Toggle */}
               <div className="flex items-center justify-between px-4 pt-3.5 pb-2">
                 <input
+                  ref={titleInputRef}
                   type="text"
                   placeholder="Tiêu đề"
                   value={title}
@@ -293,7 +362,7 @@ const CreateNote: React.FC<CreateNoteProps> = ({ onAddNote }) => {
                             handleAddChecklistItem();
                           }
                         }}
-                        className="flex-1 bg-transparent text-xs text-slate-700 dark:text-slate-300 focus:outline-none placeholder-slate-400"
+                        className="flex-1 bg-transparent text-xs text-slate-707 dark:text-slate-300 focus:outline-none placeholder-slate-400"
                       />
                       {newItemText.trim() && (
                         <button 
@@ -304,6 +373,67 @@ const CreateNote: React.FC<CreateNoteProps> = ({ onAddNote }) => {
                           Thêm
                         </button>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Optional Attachments Creator Preview */}
+                {attachments.length > 0 && (
+                  <div className="space-y-1.5 border-t border-dashed border-slate-200/40 dark:border-slate-800/40 pt-3 text-left">
+                    <h5 className="text-[10px] font-bold uppercase tracking-wider text-slate-450 dark:text-slate-505">Tệp đính kèm ({attachments.length}):</h5>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {attachments.map((file, idx) => {
+                        const isImg = file.type.startsWith('image/');
+                        return (
+                          <div key={idx} className="flex items-center justify-between p-1.5 rounded-xl bg-slate-50 border border-slate-250 dark:bg-slate-950/40 dark:border-slate-800 text-left">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              {isImg ? (
+                                <ImageIcon className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                              ) : (
+                                <FileIcon className="w-3.5 h-3.5 text-indigo-550 shrink-0" />
+                              )}
+                              <div className="min-w-0 pr-1 truncate">
+                                <p className="text-[10.5px] font-bold text-slate-700 dark:text-slate-300 truncate leading-tight">{file.name}</p>
+                                {file.size && <p className="text-[8px] text-slate-400 font-semibold">{file.size}</p>}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setAttachments(attachments.filter((_, fidx) => fidx !== idx))}
+                              className="p-1 hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-400 hover:text-red-500 rounded transition shrink-0"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Shared with Members list Creator Preview */}
+                {sharedWith.length > 0 && (
+                  <div className="space-y-1.5 border-t border-dashed border-slate-200/40 dark:border-slate-800/40 pt-3 text-left">
+                    <h5 className="text-[10px] font-bold uppercase tracking-wider text-slate-450 dark:text-slate-505 flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-indigo-500" /> Thành viên cùng chia sẻ ({sharedWith.length}):
+                    </h5>
+                    <div className="flex flex-wrap gap-1">
+                      {sharedWith.map((contactId) => {
+                        const contact = initialContacts.find(c => c.id === contactId);
+                        if (!contact) return null;
+                        return (
+                          <div key={contactId} className="inline-flex items-center gap-1 text-[9.5px] font-bold bg-white dark:bg-slate-950 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/40 p-0.5 px-2 rounded-full select-none shadow-xs">
+                            <span>{contact.name}</span>
+                            <button 
+                              type="button" 
+                              onClick={() => toggleContactShareLocal(contactId)} 
+                              className="text-slate-400 hover:text-red-500 cursor-pointer"
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -428,6 +558,70 @@ const CreateNote: React.FC<CreateNoteProps> = ({ onAddNote }) => {
                   >
                     <ImageIcon className="w-4 h-4" />
                   </button>
+
+                  {/* General file attachment trigger */}
+                  <input 
+                    type="file" 
+                    ref={attachmentInputRef} 
+                    onChange={handleAttachmentUpload} 
+                    className="hidden" 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => attachmentInputRef.current?.click()}
+                    title="Đính kèm file tài liệu" 
+                    className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 transition-colors"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                  </button>
+
+                  {/* Share selector popover direct handle */}
+                  <div className="relative">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowSharePicker(!showSharePicker)}
+                      title="Chia sẻ với các thành viên khác" 
+                      className={`p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 transition-colors ${sharedWith.length > 0 ? 'text-indigo-600 bg-indigo-50/50 dark:bg-slate-800' : ''}`}
+                    >
+                      <Users className="w-4 h-4" />
+                    </button>
+
+                    {showSharePicker && (
+                      <div className="absolute left-0 bottom-10 z-[1000] bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl p-3 shadow-2xl w-64 max-h-60 overflow-y-auto no-scrollbar">
+                        <h4 className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 border-b border-slate-100 dark:border-slate-800/40 pb-1 flex items-center gap-1 ml-0.5">
+                          <Users className="w-3.5 h-3.5 text-indigo-500" />
+                          Thành viên đóng góp
+                        </h4>
+                        <div className="space-y-1">
+                          {initialContacts.map((contact) => {
+                            const isSelected = sharedWith.includes(contact.id);
+                            return (
+                              <div 
+                                key={contact.id} 
+                                onClick={() => toggleContactShareLocal(contact.id)}
+                                className={`p-1.5 rounded-lg flex items-center gap-2 text-left cursor-pointer transition ${isSelected ? 'bg-indigo-50/45 dark:bg-indigo-950/25 font-semibold' : 'hover:bg-slate-5 transition'}`}
+                              >
+                                <span className="w-4.5 h-4.5 bg-indigo-100 dark:bg-indigo-950 text-indigo-800 dark:text-indigo-400 text-[8px] font-bold rounded-full flex items-center justify-center shrink-0">
+                                  {contact.name.split(' ').pop()?.[0] || 'C'}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[10px] text-slate-700 dark:text-slate-350 truncate">{contact.name}</p>
+                                </div>
+                                <div className="shrink-0">
+                                  <input 
+                                    type="checkbox" 
+                                    checked={isSelected} 
+                                    onChange={() => {}} 
+                                    className="w-3 h-3 text-indigo-600 focus:ring-0 rounded"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                   
                   {/* URL icon button option */}
                   <button 
@@ -507,7 +701,7 @@ const CreateNote: React.FC<CreateNoteProps> = ({ onAddNote }) => {
       </div>
     </div>
   );
-};
+});
 
 
 const NotesView: React.FC = () => {
@@ -520,7 +714,12 @@ const NotesView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTag, setActiveTag] = useState<string | null>(null);
   
+  // Share Note Modal state
+  const [sharingNote, setSharingNote] = useState<Note | null>(null);
+  const [shareSearchTerm, setShareSearchTerm] = useState('');
+  
   // Modal Edit Note state
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [modalTitle, setModalTitle] = useState('');
   const [modalContent, setModalContent] = useState('');
@@ -532,6 +731,14 @@ const NotesView: React.FC = () => {
   const [modalTagsInput, setModalTagsInput] = useState('');
   const [modalNewTodo, setModalNewTodo] = useState('');
   const modalFileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Custom states inside edit modal
+  const [modalAttachments, setModalAttachments] = useState<{ name: string; url: string; size?: string; type: string }[]>([]);
+  const [modalSharedWith, setModalSharedWith] = useState<string[]>([]);
+  const [modalShowSharePicker, setModalShowSharePicker] = useState(false);
+  const modalAttachmentInputRef = useRef<HTMLInputElement>(null);
+  
+  const createNoteRef = useRef<CreateNoteHandle>(null);
 
   const handleModalImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -542,6 +749,32 @@ const NotesView: React.FC = () => {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleModalAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        const sizeKB = Math.round(file.size / 1024);
+        const sizeStr = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
+        const newAttachment = {
+          name: file.name,
+          url: reader.result,
+          size: sizeStr,
+          type: file.type || 'application/octet-stream'
+        };
+        setModalAttachments(prev => [...prev, newAttachment]);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const toggleModalContactShare = (contactId: string) => {
+    setModalSharedWith(prev => 
+      prev.includes(contactId) ? prev.filter(id => id !== contactId) : [...prev, contactId]
+    );
   };
 
   // Persist notes changes
@@ -556,7 +789,7 @@ const NotesView: React.FC = () => {
     }, 2500);
   };
 
-  const handleShareNote = (note: Note) => {
+  const handleCopyShareLink = (note: Note) => {
     const title = note.title || 'Ghi chú không tiêu đề';
     const shareUrl = `${window.location.protocol}//${window.location.host}/?shareType=note&shareId=${note.id}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
@@ -570,6 +803,32 @@ const NotesView: React.FC = () => {
       document.body.removeChild(textarea);
       showToast(`Đã sao chép liên kết ghi chú: "${title}"!`);
     });
+  };
+
+  const handleShareNote = (note: Note) => {
+    setSharingNote(note);
+    setShareSearchTerm('');
+  };
+
+  const toggleContactShare = (noteId: string, contactId: string) => {
+    const updated = notes.map(note => {
+      if (note.id === noteId) {
+        const currentShared = note.sharedWith || [];
+        const isAlreadyShared = currentShared.includes(contactId);
+        const updatedShared = isAlreadyShared
+          ? currentShared.filter(id => id !== contactId)
+          : [...currentShared, contactId];
+        
+        const updatedNote = { ...note, sharedWith: updatedShared };
+        if (sharingNote && sharingNote.id === noteId) {
+          setSharingNote(updatedNote);
+        }
+        return updatedNote;
+      }
+      return note;
+    });
+    setNotes(updated);
+    localStorage.setItem('keep_notes', JSON.stringify(updated));
   };
 
   const handleAddNote = (newNoteData: Partial<Note>) => {
@@ -651,6 +910,9 @@ const NotesView: React.FC = () => {
     setModalShowChecklist(note.checklist && note.checklist.length > 0 ? true : false);
     setModalImageUrl(note.imageUrl || '');
     setModalTagsInput(note.tags ? note.tags.join(', ') : '');
+    setModalAttachments(note.attachments ? [...note.attachments] : []);
+    setModalSharedWith(note.sharedWith ? [...note.sharedWith] : []);
+    setModalShowSharePicker(false);
   };
 
   const saveEditModal = () => {
@@ -669,6 +931,8 @@ const NotesView: React.FC = () => {
       isPinned: modalIsPinned,
       imageUrl: modalImageUrl.trim() || undefined,
       tags: tags.length > 0 ? tags : undefined,
+      attachments: modalAttachments.length > 0 ? modalAttachments : undefined,
+      sharedWith: modalSharedWith.length > 0 ? modalSharedWith : undefined,
     };
 
     handleUpdateNote(updated);
@@ -698,24 +962,35 @@ const NotesView: React.FC = () => {
            {/* Top Bar for Dynamic Searching & Label Filtering */}
            <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 mb-6 max-w-4xl mx-auto w-full">
              
-             {/* Beautiful search bar */}
-             <div className="relative flex-1 max-w-lg">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm qua văn bản, tiêu đề, checklist..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 font-medium text-slate-850 dark:text-white"
-                />
-                {searchTerm && (
-                  <button 
-                    onClick={() => setSearchTerm('')} 
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-650"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                )}
+             {/* Beautiful search bar with adjacent Create Note button */}
+             <div className="flex flex-col sm:flex-row flex-1 items-stretch sm:items-center gap-2 max-w-xl">
+               <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Tìm kiếm qua văn bản, tiêu đề, checklist..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2 text-xs bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 font-medium text-slate-850 dark:text-white"
+                  />
+                  {searchTerm && (
+                    <button 
+                      onClick={() => setSearchTerm('')} 
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-650"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+               </div>
+
+               <button
+                 type="button"
+                 onClick={() => setIsCreateModalOpen(true)}
+                 className="px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 active:scale-95 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all shrink-0 cursor-pointer"
+               >
+                 <Plus className="w-3.5 h-3.5 text-indigo-500" />
+                 <span>Ghi chú mới</span>
+               </button>
              </div>
 
              {/* Tag selector filter badges */}
@@ -741,8 +1016,7 @@ const NotesView: React.FC = () => {
              )}
            </div>
 
-           {/* Keep Interactive Note Creator */}
-           <CreateNote onAddNote={handleAddNote} />
+
 
            {/* Masonry Columns Notes display */}
            <div className="flex-1 min-h-0">
@@ -797,7 +1071,7 @@ const NotesView: React.FC = () => {
                        <Pencil className="w-6 h-6 animate-pulse" />
                      </div>
                      <p className="text-sm font-bold text-slate-400">Chưa có ghi chú nào ăn khớp với bộ lọc.</p>
-                     <p className="text-xs text-slate-400 max-w-xs">Hãy sử dụng thanh tạo biểu mẫu ghi chú ở trên để ghi nháp các suy nghĩ hoặc việc cần làm mới!</p>
+                     <p className="text-xs text-slate-400 max-w-xs">Hãy bấm vào nút 'Ghi chú mới' ở trên để viết các ý tưởng mới hoặc việc cần làm!</p>
                    </div>
                  )
                )}
@@ -818,7 +1092,7 @@ const NotesView: React.FC = () => {
       {/* GOOGLE KEEP STYLE MODAL FOR EDITING NOTE DETAILS */}
       {editingNote && (
         <div 
-          className="fixed inset-0 z-50 bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 animate-fade-in"
+          className="fixed inset-0 z-[9999] bg-slate-950/40 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 animate-fade-in"
           onClick={saveEditModal}
         >
           <div 
@@ -959,7 +1233,7 @@ const NotesView: React.FC = () => {
                     placeholder="e.g. công việc, mua sắm"
                     value={modalTagsInput}
                     onChange={(e) => setModalTagsInput(e.target.value)}
-                    className="flex-1 bg-transparent text-xs text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none"
+                    className="flex-1 bg-transparent text-xs text-slate-707 dark:text-slate-350 placeholder-slate-400 focus:outline-none"
                   />
                 </div>
               </div>
@@ -975,7 +1249,7 @@ const NotesView: React.FC = () => {
                       placeholder="Dán URL đường dẫn liên kết hình ảnh..."
                       value={modalImageUrl}
                       onChange={(e) => setModalImageUrl(e.target.value)}
-                      className="flex-1 bg-transparent text-xs text-slate-700 dark:text-slate-300 placeholder-slate-400 focus:outline-none font-mono"
+                      className="flex-1 bg-transparent text-xs text-slate-707 dark:text-slate-350 placeholder-slate-400 focus:outline-none font-mono"
                     />
                   </div>
                   
@@ -993,6 +1267,139 @@ const NotesView: React.FC = () => {
                   >
                     Tải ảnh từ máy tính
                   </button>
+                </div>
+              </div>
+
+              {/* Dynamic attachments list editing preview within edit modal */}
+              <div className="border-t border-dashed border-slate-200/40 dark:border-slate-800/40 pt-4">
+                <label className="text-[10px] font-extrabold uppercase tracking-widest text-[#80868b] dark:text-slate-500 block mb-1">Đính kèm tài liệu & Files giấy tờ ({modalAttachments.length}):</label>
+                <div className="space-y-2 border border-slate-200/50 dark:border-slate-850 rounded-2xl p-3 bg-black/5 dark:bg-slate-950/20">
+                  {modalAttachments.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1 no-scrollbar">
+                      {modalAttachments.map((file, idx) => {
+                        const isImg = file.type.startsWith('image/');
+                        return (
+                          <div key={idx} className="flex items-center justify-between p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 text-left">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              {isImg ? (
+                                <ImageIcon className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                              ) : (
+                                <FileIcon className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate leading-tight">{file.name}</p>
+                                {file.size && <p className="text-[9px] text-slate-450 font-semibold">{file.size}</p>}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setModalAttachments(modalAttachments.filter((_, fidx) => fidx !== idx))}
+                              className="p-1 hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-400 hover:text-red-505 rounded transition cursor-pointer"
+                              title="Xóa tệp đính kèm"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-slate-400 font-bold text-center py-1 bg-transparent">Chưa đính kèm tài liệu nào cho ghi chú này.</p>
+                  )}
+                  
+                  <div className="flex justify-end pt-1">
+                    <input 
+                      type="file" 
+                      ref={modalAttachmentInputRef} 
+                      onChange={handleModalAttachmentUpload} 
+                      className="hidden" 
+                    />
+                    <button
+                      type="button"
+                      onClick={() => modalAttachmentInputRef.current?.click()}
+                      className="px-3.5 py-1.5 hover:bg-indigo-700 bg-indigo-600 text-[11px] font-bold text-white rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Paperclip className="w-3.5 h-3.5" />
+                      <span>Đính kèm file mới</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dynamic family sharing selection within keep edit modal */}
+              <div className="border-t border-dashed border-slate-200/40 dark:border-slate-800/40 pt-4">
+                <label className="text-[10px] font-extrabold uppercase tracking-widest text-[#80868b] dark:text-slate-500 block mb-1">Thành viên cùng chia sẻ ({modalSharedWith.length}):</label>
+                <div className="space-y-3 p-3.5 border border-slate-200/50 dark:border-slate-850 rounded-2xl bg-black/5 dark:bg-slate-950/20">
+                  {modalSharedWith.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto no-scrollbar">
+                      {modalSharedWith.map((contactId) => {
+                        const contact = initialContacts.find(c => c.id === contactId);
+                        if (!contact) return null;
+                        return (
+                          <div key={contactId} className="inline-flex items-center gap-1.5 text-xs font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-400 border border-indigo-200/20 dark:border-indigo-900/25 p-1 px-2.5 rounded-full select-none shadow-xs">
+                            <span className="w-4 h-4 bg-indigo-500 text-white font-bold rounded-full flex items-center justify-center text-[8px]">
+                              {contact.name.split(' ').pop()?.[0] || 'C'}
+                            </span>
+                            <span>{contact.name}</span>
+                            <button 
+                              type="button" 
+                              onClick={() => toggleModalContactShare(contactId)} 
+                              className="text-slate-450 hover:text-red-500 transition-colors ml-0.5 cursor-pointer"
+                              title="Gỡ bỏ chia sẻ"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-slate-400 font-bold text-center bg-transparent py-1">Ghi chú hiện tại đang ở chế độ riêng tư.</p>
+                  )}
+                  
+                  {/* Dropdown triggers share picker */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setModalShowSharePicker(!modalShowSharePicker)}
+                      className="px-3.5 py-1.5 border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 text-[11px] font-bold text-slate-700 dark:text-slate-200 rounded-xl transition flex items-center gap-1.5 bg-white dark:bg-slate-950 shadow-xs cursor-pointer"
+                    >
+                      <Users className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Quản lý thành viên cùng xem</span>
+                    </button>
+
+                    {modalShowSharePicker && (
+                      <div className="absolute left-0 top-10 z-[1000] bg-white dark:bg-slate-900 border border-slate-250 dark:border-slate-800 rounded-xl p-3 shadow-2xl w-64 max-h-48 overflow-y-auto no-scrollbar text-left font-sans">
+                        <div className="space-y-1">
+                          {initialContacts.map((contact) => {
+                            const isSelected = modalSharedWith.includes(contact.id);
+                            return (
+                              <div 
+                                key={contact.id} 
+                                onClick={() => toggleModalContactShare(contact.id)}
+                                className={`p-1.5 rounded-lg flex items-center gap-2 text-left cursor-pointer transition ${isSelected ? 'bg-indigo-50/45 dark:bg-indigo-950/25 font-semibold' : 'hover:bg-slate-5 dark:hover:bg-slate-805'}`}
+                              >
+                                <span className="w-4 h-4 bg-indigo-100 dark:bg-indigo-950 text-indigo-805 dark:text-indigo-400 text-[8px] font-bold rounded-full flex items-center justify-center shrink-0">
+                                  {contact.name.split(' ').pop()?.[0] || 'C'}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-[10px] text-slate-750 dark:text-slate-350 truncate">{contact.name}</p>
+                                </div>
+                                <div className="shrink-0">
+                                  <input 
+                                    type="checkbox" 
+                                    checked={isSelected} 
+                                    onChange={() => {}} 
+                                    className="w-3 h-3 text-indigo-600 focus:ring-0 rounded"
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -1047,6 +1454,158 @@ const NotesView: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* GOOGLE KEEP STYLE MODAL FOR CREATING A NEW NOTE */}
+      {isCreateModalOpen && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-slate-950/45 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 animate-fade-in"
+          onClick={() => {
+            createNoteRef.current?.close();
+          }}
+        >
+          <div 
+            className="w-full max-w-xl animate-scale-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CreateNote 
+              ref={createNoteRef} 
+              onAddNote={handleAddNote} 
+              onCloseModal={() => setIsCreateModalOpen(false)}
+              isModal={true}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* SHARE NOTE WITH CONTACTS MODAL */}
+      {sharingNote && (() => {
+        const filteredShareContacts = initialContacts.filter(c => 
+          c.name.toLowerCase().includes(shareSearchTerm.toLowerCase()) || 
+          c.email.toLowerCase().includes(shareSearchTerm.toLowerCase()) ||
+          (c.title && c.title.toLowerCase().includes(shareSearchTerm.toLowerCase()))
+        );
+
+        return (
+          <div 
+            className="fixed inset-0 z-[9999] bg-slate-950/45 backdrop-blur-xs flex items-center justify-center p-4 transition-all duration-300 animate-fade-in"
+            onClick={() => setSharingNote(null)}
+          >
+            <div 
+              className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-2xl animate-scale-in"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-indigo-500" />
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-white">Chia sẻ với danh bạ</h3>
+                </div>
+                <button 
+                  onClick={() => setSharingNote(null)} 
+                  className="p-1 rounded-full hover:bg-slate-150 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-650 shrink-0"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="mb-3">
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Ghi chú chia sẻ</p>
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 truncate mt-0.5">
+                  {sharingNote.title || "Ghi chú không tiêu đề"}
+                </p>
+              </div>
+
+              {/* Search contacts inside modal */}
+              <div className="relative mb-3">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Tìm thành viên trong danh bạ..."
+                  value={shareSearchTerm}
+                  onChange={(e) => setShareSearchTerm(e.target.value)}
+                  className="w-full pl-8 pr-7 py-2 text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 text-slate-800 dark:text-white"
+                />
+                {shareSearchTerm && (
+                  <button 
+                    onClick={() => setShareSearchTerm('')} 
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+
+              {/* Scrollable list of suggested contacts */}
+              <div className="space-y-1 max-h-60 overflow-y-auto no-scrollbar pr-1 border border-slate-100 dark:border-slate-950 rounded-xl p-1.5 bg-slate-50/30 dark:bg-slate-950/30">
+                {filteredShareContacts.map((contact) => {
+                  const isShared = sharingNote.sharedWith?.includes(contact.id);
+                  return (
+                    <div 
+                      key={contact.id} 
+                      onClick={() => toggleContactShare(sharingNote.id, contact.id)}
+                      className={`p-2 rounded-lg flex items-center justify-between gap-3 text-left transition-all cursor-pointer ${isShared ? 'bg-indigo-50/40 dark:bg-indigo-950/15 hover:bg-indigo-50/70 dark:hover:bg-indigo-950/25 border border-indigo-100/20 dark:border-indigo-900/10' : 'hover:bg-slate-100/80 dark:hover:bg-slate-800/85 border border-transparent'}`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {contact.avatar && contact.avatar.startsWith('http') ? (
+                          <img 
+                            src={contact.avatar} 
+                            alt={contact.name} 
+                            referrerPolicy="no-referrer"
+                            className="w-8 h-8 rounded-full border border-slate-250/25 object-cover shrink-0" 
+                          />
+                        ) : (
+                          <span className="w-8 h-8 rounded-full bg-indigo-500 text-white font-bold text-xs flex items-center justify-center shrink-0">
+                            {contact.name.split(' ').pop()?.[0] || 'C'}
+                          </span>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-205 truncate">{contact.name}</p>
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{contact.title} • {contact.email}</p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0">
+                        {isShared ? (
+                          <span className="bg-indigo-100 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400 px-2 py-0.5 rounded-md text-[9px] font-bold border border-indigo-200/30">
+                            ✓ Đã chia sẻ
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 dark:text-slate-400 hover:text-slate-700 px-2.5 py-0.5 rounded-md text-[9px] font-bold border border-slate-200 dark:border-slate-800">
+                            + Thêm
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+                {filteredShareContacts.length === 0 && (
+                  <div className="text-center py-6 text-xs text-slate-400 dark:text-slate-500">
+                    Không tìm thấy liên hệ nào.
+                  </div>
+                )}
+              </div>
+
+              {/* Bottom bar and Copy link */}
+              <div className="mt-4 pt-3.5 border-t border-slate-200/10 dark:border-white/5 flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => handleCopyShareLink(sharingNote)}
+                  className="px-3 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-850 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-350 bg-white dark:bg-slate-900 font-bold text-[10px] rounded-lg flex items-center gap-1.5 shadow-xs transition-all shrink-0 cursor-pointer active:scale-95"
+                >
+                  <Link className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>Sao chép liên kết</span>
+                </button>
+                <button 
+                  onClick={() => setSharingNote(null)} 
+                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm transition-colors active:scale-95"
+                >
+                  Hoàn tất
+                </button>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
     </main>
   );

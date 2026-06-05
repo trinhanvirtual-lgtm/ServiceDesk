@@ -11,8 +11,12 @@ import {
   Check, 
   CheckSquare, 
   Square,
-  Tag
+  Tag,
+  File as FileIcon,
+  X,
+  Paperclip
 } from 'lucide-react';
+import { initialContacts } from './ContactsView';
 
 export interface ChecklistItem {
   item: string;
@@ -29,6 +33,13 @@ export interface Note {
   isPinned?: boolean;
   createdAt: string;
   imageUrl?: string;
+  sharedWith?: string[];
+  attachments?: {
+    name: string;
+    url: string;
+    size?: string;
+    type: string;
+  }[];
 }
 
 interface NoteCardProps {
@@ -64,6 +75,7 @@ const NoteCard: React.FC<NoteCardProps> = ({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const colorPickerRef = useRef<HTMLDivElement>(null);
   const cardFileInputRef = useRef<HTMLInputElement>(null);
+  const cardAttachmentInputRef = useRef<HTMLInputElement>(null);
 
   const handleCardImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -72,6 +84,27 @@ const NoteCard: React.FC<NoteCardProps> = ({
     reader.onloadend = () => {
       if (typeof reader.result === 'string') {
         onUpdateNote({ ...note, imageUrl: reader.result });
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCardAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === 'string') {
+        const sizeKB = Math.round(file.size / 1024);
+        const sizeStr = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
+        const newAttachment = {
+          name: file.name,
+          url: reader.result,
+          size: sizeStr,
+          type: file.type || 'application/octet-stream'
+        };
+        const updatedAttachments = note.attachments ? [...note.attachments, newAttachment] : [newAttachment];
+        onUpdateNote({ ...note, attachments: updatedAttachments });
       }
     };
     reader.readAsDataURL(file);
@@ -141,6 +174,50 @@ const NoteCard: React.FC<NoteCardProps> = ({
         {note.imageUrl && (
           <div className="w-full mb-3 rounded-lg overflow-hidden max-h-48 border border-slate-100 dark:border-slate-800">
             <img src={note.imageUrl} alt="Note image" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          </div>
+        )}
+
+        {/* Optional File Attachments */}
+        {note.attachments && note.attachments.length > 0 && (
+          <div className="mt-2 mb-3 space-y-1" onClick={(e) => e.stopPropagation()}>
+            {note.attachments.map((file, idx) => {
+              const isImg = file.type.startsWith('image/');
+              return (
+                <div 
+                  key={idx} 
+                  className="flex items-center justify-between p-1.5 rounded-lg bg-slate-50/80 dark:bg-slate-950/40 border border-slate-150/10 dark:border-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-all text-left"
+                >
+                  <a 
+                    href={file.url} 
+                    download={file.name} 
+                    className="flex items-center gap-2 min-w-0 flex-1 hover:underline"
+                    title={`Click để tải xuống: ${file.name}`}
+                  >
+                    {isImg ? (
+                      <ImageIcon className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                    ) : (
+                      <FileIcon className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                    )}
+                    <div className="min-w-0 pr-2">
+                      <p className="text-[11px] font-semibold text-slate-700 dark:text-slate-350 truncate leading-snug">{file.name}</p>
+                      {file.size && <p className="text-[9px] text-slate-400 font-medium">{file.size}</p>}
+                    </div>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const updatedAttachments = note.attachments?.filter((_, fidx) => fidx !== idx);
+                      onUpdateNote({ ...note, attachments: updatedAttachments?.length ? updatedAttachments : undefined });
+                    }}
+                    className="p-1 hover:bg-red-50 dark:hover:bg-red-950/20 text-slate-400 hover:text-red-500 rounded transition-colors shrink-0"
+                    title="Xóa đính kèm"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
 
@@ -217,6 +294,35 @@ const NoteCard: React.FC<NoteCardProps> = ({
             ))}
           </div>
         )}
+
+        {/* Shared With Contacts Avatars */}
+        {note.sharedWith && note.sharedWith.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-200/5 dark:border-white/5">
+            <span className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">Được chia sẻ với:</span>
+            <div className="flex -space-x-1 overflow-hidden">
+              {note.sharedWith.map((contactId) => {
+                const contact = initialContacts.find(c => c.id === contactId);
+                if (!contact) return null;
+                return (
+                  <div key={contactId} title={`${contact.name} (${contact.email})`} className="relative shrink-0 select-none">
+                    {contact.avatar && contact.avatar.startsWith('http') ? (
+                      <img 
+                        src={contact.avatar} 
+                        alt={contact.name} 
+                        referrerPolicy="no-referrer"
+                        className="w-4.5 h-4.5 rounded-full border border-white dark:border-slate-900 object-cover"
+                      />
+                    ) : (
+                      <span className="w-4.5 h-4.5 rounded-full border border-white dark:border-slate-900 bg-indigo-500 dark:bg-indigo-600 text-white text-[8px] font-bold flex items-center justify-center">
+                        {contact.name.split(' ').pop()?.[0] || 'C'}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom Toolbars (Visible on card hover) */}
@@ -228,12 +334,26 @@ const NoteCard: React.FC<NoteCardProps> = ({
           >
             <Bell className="w-3.5 h-3.5" />
           </button>
-          <button 
-            title="Người cộng tác" 
-            className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-          </button>
+          
+          {onShareNote ? (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onShareNote(note);
+              }}
+              title="Chia sẻ với Danh bạ" 
+              className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-sky-400 transition-colors"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+            </button>
+          ) : (
+            <button 
+              title="Người cộng tác" 
+              className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+            </button>
+          )}
           
           {/* Color palette popover trigger */}
           <div className="relative">
@@ -288,6 +408,23 @@ const NoteCard: React.FC<NoteCardProps> = ({
             }}
           >
             <ImageIcon className="w-3.5 h-3.5" />
+          </button>
+
+          <input 
+            type="file" 
+            ref={cardAttachmentInputRef} 
+            onChange={handleCardAttachmentUpload} 
+            className="hidden" 
+          />
+          <button 
+            title="Đính kèm tài liệu" 
+            className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              cardAttachmentInputRef.current?.click();
+            }}
+          >
+            <Paperclip className="w-3.5 h-3.5" />
           </button>
           
           <button 

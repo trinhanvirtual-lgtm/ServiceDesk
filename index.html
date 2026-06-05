@@ -4,10 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Service Desk Manager</title>
-    <link rel="icon" type="image/png" href="https://storage.googleapis.com/aistudio-yeti-prod-uploads/bW1bL286B1k3sQhIFJj4i4/df5f09cb-4c57-41fb-9964-bca5cf8dc979.png" />
+    <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
@@ -17,8 +17,8 @@
         font-size: 16px;
       }
       body {
-        font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
-        background-color: #f0f2f5; /* Fallback */
+        font-family: 'Outfit', 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif !important;
+        background-color: #0f172a; /* Fallback to rich slate */
         background-image: var(--color-background-body);
         transition: background-image 0.3s ease;
         border-radius: 0 10px 10px 0;
@@ -109,9 +109,9 @@
          ====================================================================== */
       :root {
         /* Light Theme Colors */
-        --color-text-primary: #1e293b;      /* slate-800 */
-        --color-text-secondary: #475569;    /* slate-600 */
-        --color-text-subtle: #64748b;       /* slate-500 */
+        --color-text-primary: #0f172a;      /* slate-900 for ultra crisp text on glass */
+        --color-text-secondary: #334155;    /* slate-700 */
+        --color-text-subtle: #475569;       /* slate-600 */
         --color-background-body: radial-gradient(
           125% 125% at -2% 101%,
           rgba(245, 87, 2, 1) 10.5%,
@@ -122,12 +122,12 @@
           rgba(202, 179, 214, 1) 65%,
           rgba(148, 201, 233, 1) 100%
         );
-        --color-surface-primary: rgba(255, 255, 255, 0.4);
-        --color-surface-secondary: rgba(255, 255, 255, 0.6);
-        --color-surface-tertiary: rgba(255, 255, 255, 0.8);
-        --color-surface-solid: #ffffff;
-        --color-border-primary: rgba(255, 255, 255, 0.5);
-        --color-border-secondary: rgba(226, 232, 240, 0.8); /* slate-200/80 */
+        --color-surface-primary: rgba(255, 255, 255, 0.22);
+        --color-surface-secondary: rgba(255, 255, 255, 0.4);
+        --color-surface-tertiary: rgba(255, 255, 255, 0.62);
+        --color-surface-solid: rgba(255, 255, 255, 0.85);
+        --color-border-primary: rgba(255, 255, 255, 0.4);
+        --color-border-secondary: rgba(255, 255, 255, 0.25);
 
         --color-destructive-fg: #dc2626; /* red-600 */
         --color-destructive-bg: rgba(239, 68, 68, 0.1); /* red-500/10 */
@@ -136,9 +136,9 @@
 
       .dark {
         /* Dark Theme Colors */
-        --color-text-primary: #f1f5f9;      /* slate-100 */
-        --color-text-secondary: #94a3b8;    /* slate-400 */
-        --color-text-subtle: #64748b;       /* slate-500 */
+        --color-text-primary: #f8fafc;      /* slate-50 */
+        --color-text-secondary: #cbd5e1;    /* slate-300 */
+        --color-text-subtle: #94a3b8;       /* slate-400 */
         --color-background-body: linear-gradient(rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.85)), radial-gradient(
           125% 125% at -2% 101%,
           rgba(245, 87, 2, 1) 10.5%,
@@ -149,12 +149,12 @@
           rgba(202, 179, 214, 1) 65%,
           rgba(148, 201, 233, 1) 100%
         );
-        --color-surface-primary: rgba(30, 41, 59, 0.4);   /* slate-800/40 */
-        --color-surface-secondary: rgba(30, 41, 59, 0.6);
-        --color-surface-tertiary: rgba(30, 41, 59, 0.8);
-        --color-surface-solid: #1e293b; /* slate-800 */
-        --color-border-primary: rgba(51, 65, 85, 0.5);   /* slate-700/50 */
-        --color-border-secondary: rgba(51, 65, 85, 0.8);   /* slate-700/80 */
+        --color-surface-primary: rgba(15, 23, 42, 0.25);
+        --color-surface-secondary: rgba(15, 23, 42, 0.45);
+        --color-surface-tertiary: rgba(15, 23, 42, 0.65);
+        --color-surface-solid: rgba(30, 41, 59, 0.8);
+        --color-border-primary: rgba(255, 255, 255, 0.08);
+        --color-border-secondary: rgba(255, 255, 255, 0.05);
 
         --color-destructive-fg: #f87171; /* red-400 */
         --color-destructive-bg: rgba(248, 113, 113, 0.15); /* red-400/15 */
@@ -209,6 +209,62 @@
         --color-accent-700: #7e22ce;
         --color-accent-gradient-secondary: #8b5cf6; /* violet-500 */
         --color-accent-shadow: rgba(168, 85, 247, 0.25);
+      }
+
+      /* Automatic Premium Glassmorphism Overrides */
+      .bg-\[--color-surface-primary\],
+      .bg-\[--color-surface-secondary\],
+      .bg-\[--color-surface-tertiary\],
+      .bg-\[--color-surface-solid\] {
+        backdrop-filter: blur(16px) saturate(190%) !important;
+        -webkit-backdrop-filter: blur(16px) saturate(190%) !important;
+        transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                    border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+                    box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      }
+
+      /* Elevate card borders for frosted look */
+      .border-\[--color-border-primary\],
+      .border-\[--color-border-secondary\],
+      .border-slate-200,
+      .dark .border-slate-800 {
+        border-color: rgba(255, 255, 255, 0.16) !important;
+      }
+      .dark .border-\[--color-border-primary\], 
+      .dark .border-\[--color-border-secondary\] {
+        border-color: rgba(255, 255, 255, 0.08) !important;
+      }
+
+      /* Add distinct high-fidelity glass cards */
+      .glass-card-premium {
+        background: rgba(255, 255, 255, 0.25) !important;
+        backdrop-filter: blur(20px) saturate(200%) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(200%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.04) !important;
+      }
+      .dark .glass-card-premium {
+        background: rgba(15, 23, 42, 0.35) !important;
+        backdrop-filter: blur(20px) saturate(200%) !important;
+        -webkit-backdrop-filter: blur(20px) saturate(200%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.09) !important;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+      }
+
+      /* Refined scrollbar styling for seamless feel */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 9999px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.3);
       }
     </style>
 
